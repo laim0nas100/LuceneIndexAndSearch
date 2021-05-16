@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>lt.lb</groupId>
+    <artifactId>LuceneIndexAndSearch</artifactId>
+    <version>local-jar</version>
+    <packaging>jar</packaging>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <gendir>${project.basedir}/src/main/java/</gendir>
+        <lucene.ver>8.8.1</lucene.ver>
+        <tika.ver>1.25</tika.ver>
+        <lb.dir>com.github.laim0nas100.Commons</lb.dir>
+        <lb.ver>2021.05v1</lb.ver>
+        
+    </properties>
+    
+    <dependencies>
+        
+        <dependency>
+            <groupId>${lb.dir}</groupId>
+            <artifactId>commonslb-caching</artifactId>
+            <version>${lb.ver}</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>${lb.dir}</groupId>
+            <artifactId>commonslb-log</artifactId>
+            <version>${lb.ver}</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>${lb.dir}</groupId>
+            <artifactId>commonslb-jpa</artifactId>
+            <version>${lb.ver}</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>${lb.dir}</groupId>
+            <artifactId>commonslb-io</artifactId>
+            <version>${lb.ver}</version>
+        </dependency>
+        <dependency>
+            <groupId>${lb.dir}</groupId>
+            <artifactId>commonslb-lexing</artifactId>
+            <version>${lb.ver}</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>com.github.laim0nas100</groupId>
+            <artifactId>UncheckedUtils</artifactId>
+            <version>1.4</version>
+        </dependency>
+        
+        <!-- https://mvnrepository.com/artifact/org.apache.lucene/lucene-core -->
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-core</artifactId>
+            <version>${lucene.ver}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-analyzers-common</artifactId>
+            <version>${lucene.ver}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-queryparser</artifactId>
+            <version>${lucene.ver}</version>
+        </dependency>
+        
+        <!-- https://mvnrepository.com/artifact/org.apache.tika/tika-core -->
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-core</artifactId>
+            <version>${tika.ver}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-parsers</artifactId>
+            <version>${tika.ver}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.bouncycastle</groupId>
+                    <artifactId>bcmail-jdk15on</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.bouncycastle</groupId>
+                    <artifactId>bcprov-jdk15on</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <version>2.13.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.13.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j-impl</artifactId>
+            <version>2.13.3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>29.0-jre</version>
+        </dependency>
+        
+        <!-- https://mvnrepository.com/artifact/commons-io/commons-io -->
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.8.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-core</artifactId>
+            <version>5.4.27.Final</version>
+        </dependency>
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-entitymanager</artifactId>
+            <version>5.4.27.Final</version>
+        </dependency>
+        
+        
+<!--        <dependency>
+            <groupId>javax.persistence</groupId>
+            <artifactId>javax.persistence-api</artifactId>
+            <version>2.2</version>
+        </dependency>-->
+        <dependency>
+            <groupId>org.hibernate.validator</groupId>
+            <artifactId>hibernate-validator</artifactId>
+            <version>6.0.18.Final</version>
+        </dependency>
+        <dependency>
+            <groupId>org.hibernate.validator</groupId>
+            <artifactId>hibernate-validator-annotation-processor</artifactId>
+            <version>6.0.2.Final</version>
+        </dependency>
+    </dependencies>
+    
+    
+    <profiles>
+        
+        <profile>
+            
+            <id>modelclean</id>
+            <activation>
+                <property>
+                    <name>nbmodelgenclean</name>
+                </property>
+            </activation>
+            
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-clean-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <configuration>
+                            <filesets>
+                                <fileset>
+                                    <directory>${project.basedir}/src/main/java/</directory>
+                                    <includes>
+                                        <include>**/*_.java</include>
+                                    </includes>
+                                    <followSymlinks>false</followSymlinks>
+                                </fileset>
+                            </filesets>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <phase>generate-sources</phase>
+                    
+                            </execution>
+                        </executions>
+                    </plugin>
+                    
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>modelgen</id>
+            <activation>
+                <property>
+                    <name>nbmodelgenfix</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    
+                    <plugin>
+                        <groupId>org.bsc.maven</groupId>
+                        <artifactId>maven-processor-plugin</artifactId>
+                        <version>3.3.3</version>
+                        <executions>
+                            <execution>
+                                <id>process</id>
+                                <goals>
+                                    <goal>process</goal>
+                                </goals>
+                                <phase>generate-sources</phase>
+                                <configuration>
+                                    <!--source output directory--> 
+                                    <defaultOutputDirectory>${gendir}</defaultOutputDirectory>
+                                    <!--<defaultOutputDirectory>${project.build.directory}/generated-sources/hibernate-jpamodelgen/</defaultOutputDirectory>-->
+                                    <!--<outputDirectory>${project.basedir}/src/main/java/</outputDirectory>-->
+                                    <processors>
+                                        <processor>org.hibernate.jpamodelgen.JPAMetaModelEntityProcessor</processor>
+                                    </processors>
+                                    <overwrite>false</overwrite>
+                                    <optionMap>
+                                        <addGeneratedAnnotation>FALSE</addGeneratedAnnotation>
+                                    </optionMap>
+                        
+                                </configuration>
+                    
+                            </execution>
+                        </executions>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.hibernate</groupId>
+                                <artifactId>hibernate-jpamodelgen</artifactId>
+                                <version>5.4.1.Final</version>
+                        
+                            </dependency>
+                        </dependencies>
+                    </plugin>
+                    
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>3.0.0</version>
+                        <executions>
+                            <execution>
+                                <id>modelgen-touch-files</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <target>
+                                        <touch>
+                                            <fileset dir="src/main/java" includes="**/*.java">
+                                                <containsregexp expression="(@Entity|@MappedSuperclass|@Embeddable)" casesensitive="yes" />
+                                            </fileset>
+                                        </touch>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>

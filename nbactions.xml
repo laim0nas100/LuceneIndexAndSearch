@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<actions>
+        <action>
+            <actionName>CUSTOM-Generate</actionName>
+            <displayName>Generate</displayName>
+            <goals>
+                <goal>clean</goal>
+                <goal>generate-sources</goal>
+                <goal>"-Dnbmodelgenfix"</goal>
+            </goals>
+        </action>
+        <action>
+            <actionName>CUSTOM-Clean</actionName>
+            <displayName>Clean</displayName>
+            <goals>
+                <goal>clean</goal>
+                <goal>"-Dnbmodelgenclean"</goal>
+            </goals>
+        </action>
+    </actions>
