@@ -280,6 +280,7 @@ public class FlushByteBuffersDirectory extends BaseDirectory implements LastModi
 
     @Override
     public void close() throws IOException {
+        logger.trace("close");
         isOpen = false;
         files.clear();
     }

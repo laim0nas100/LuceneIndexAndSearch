@@ -58,7 +58,7 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
             check.close();
 
         }
-        sb.append(baos.toString(StandardCharsets.UTF_8));
+        sb.append(baos.toString(StandardCharsets.UTF_8.name()));
         return checked;
     }
 
@@ -75,7 +75,7 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
             check.close();
 
         }
-        sb.append(baos.toString(StandardCharsets.UTF_8));
+        sb.append(baos.toString(StandardCharsets.UTF_8.name()));
         return checked;
     }
 
@@ -89,7 +89,7 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
             check.close();
 
         }
-        sb.append(baos.toString(StandardCharsets.UTF_8));
+        sb.append(baos.toString(StandardCharsets.UTF_8.name()));
     }
 
     public static interface IdAndChanged<ID, D extends Comparable<D>> {

@@ -5,16 +5,21 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lt.lb.commons.Lazy;
+import lt.lb.commons.containers.collections.CollectionOp;
 import lt.lb.commons.containers.values.ThreadLocalValue;
 import lt.lb.luceneindexandsearch.config.DocumentFieldsConfig;
 import lt.lb.luceneindexandsearch.config.IndexingConfig;
@@ -25,6 +30,7 @@ import lt.lb.lucenejpa.SyncDirectory;
 import lt.lb.uncheckedutils.Checked;
 import lt.lb.uncheckedutils.CheckedExecutor;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.document.Document;
@@ -78,8 +84,8 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
         return Optional.ofNullable(getLazyCache(prop)).flatMap(m -> m.getLastChanged());
     }
 
-    public Set<ID> getCurrentIDs(Property prop) throws IOException {
-        HashSet<ID> ids = new HashSet<>(getLazyCache(prop).getMap().keySet());
+    public Map<ID, D> getCurrentIDs(Property prop) throws IOException {
+        Map<ID, D> ids = getLazyCache(prop).getMap();
         logger.trace("getCurrentIDs {} {}", prop, ids);
         return ids;
     }
@@ -187,7 +193,7 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
      * @return
      * @throws IOException
      */
-    public abstract Collection<ID> idsToDelete(Property folderName, Set<ID> currentIDs) throws IOException;
+    public abstract Collection<ID> idsToDelete(Property folderName, Map<ID, D> currentIDs) throws IOException;
 
     @Override
     public void updateIndexAddition(Property folderName) throws IOException {
@@ -198,7 +204,7 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
             return;
         }
 
-        writeIdsToIndex(false, folderName, new ArrayList<>(idsToAdd.keySet()));
+        writeIdsToIndex(false, folderName, idsToAdd);
     }
 
     public static class IdMap<ID> {
@@ -213,9 +219,9 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
 
     }
 
-    public abstract Collection<IdMap<ID>> requestIndexableMaps(Property folderName, Set<ID> ids) throws IOException;
+    public abstract Collection<IdMap<ID>> requestIndexableMaps(Property folderName, Map<ID, D> ids) throws IOException;
 
-    public abstract Map<ID, D> idsToAdd(Property folderName, Set<ID> currentIDs) throws IOException;
+    public abstract Map<ID, D> idsToAdd(Property folderName, Map<ID, D> currentIDs) throws IOException;
 
     protected String mainIdToString(ID id) {
         return String.valueOf(id);
@@ -247,8 +253,9 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
             BooleanQuery notContainsQuery = new BooleanQuery.Builder().add(versionQuery, BooleanClause.Occur.MUST_NOT).build();
             Stream<Document> differentVersionDocuments = search.pagingSearch(notContainsQuery, fieldsToLoad(folderName));
 
-            List<ID> idsToChange = differentVersionDocuments.map(doc -> this.documentInfoRetrieve(doc)).map(m -> m.getID()).collect(Collectors.toList());
-
+            Map<ID, D> idsToChange = new HashMap<>();
+            differentVersionDocuments.map(doc -> this.documentInfoRetrieve(doc))
+                    .forEach(m -> idsToChange.put(m.getID(), m.getChanged()));
             writeIdsToIndex(true, folderName, idsToChange);
         }).throwIfErrorUnwrapping(IOException.class);
 
@@ -263,20 +270,19 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
             return;
         }
 
-        writeIdsToIndex(true, folderName, new ArrayList<>(idsToChange.keySet()));
+        writeIdsToIndex(true, folderName, idsToChange);
     }
 
-    public void writeIdsToIndex(boolean update, Property folderName, List<ID> ids) throws IOException {
+    public void writeIdsToIndex(boolean update, Property folderName, Map<ID, D> ids) throws IOException {
         getLuceneExecutor().execute(() -> {
-            List<List<ID>> partition = ListUtils.partition(ids, batchWriteCount);
+
             LuceneServicesResolver<Property> resolver = getLuceneServicesResolver();
             DocumentFieldsConfig fieldsConfig = resolver.getReader(folderName).getDocumentFieldsConfig();
             LuceneSearchService search = resolver.getSearch(folderName);
 
-            for (List<ID> batch : partition) {
-
+            CollectionOp.doBatchMap(batchWriteCount, ids, batch -> {
                 getAccessExecutor().call(() -> { // nested access call
-                    return requestIndexableMaps(folderName, new HashSet<>(batch));
+                    return requestIndexableMaps(folderName, batch);
                 }).map(maps -> { // out of access call
                     if (maps.isEmpty()) {
                         return null;
@@ -290,19 +296,18 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
                             } else {
                                 indexWriter.addDocument(doc);
                             }
-
                         }
                         indexWriter.commit();
                     }
                     return null;
                 }).throwIfErrorAsNested();
-
-            }
-        }).throwIfErrorUnwrapping(IOException.class);
+            });
+        }).throwIfErrorUnwrapping(IOException.class
+        );
 
     }
 
-    public abstract Map<ID, D> idsToChange(Property folderName, Set<ID> currentIDs) throws IOException;
+    public abstract Map<ID, D> idsToChange(Property folderName, Map<ID, D> currentIDs) throws IOException;
 
     public abstract Set<String> fieldsToLoad(Property folderName);
 
@@ -337,7 +342,6 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
 //                updateIndexVersion(key);
 
                 dir.syncRemote();
-                dir.close();
 
             }).peekError(err -> {
                 logger.error("Error at " + key, err);

@@ -10,6 +10,7 @@ import org.apache.lucene.store.IndexOutput;
 /**
  *
  * @author laim0nas100
+ * @param <T>
  */
 public abstract class SyncDirectory<T extends Directory> extends ForwardingDirectory<T> implements LastModifiedAware {
 

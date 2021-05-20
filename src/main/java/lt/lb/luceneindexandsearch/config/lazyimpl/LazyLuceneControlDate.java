@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -13,9 +14,9 @@ import lt.lb.uncheckedutils.SafeOpt;
  *
  * @author laim0nas100
  */
-public abstract class LazyLuceneControlDate extends LazyLuceneIndexControl<String, Long, Date> {
+public abstract class LazyLuceneControlDate<ID> extends LazyLuceneIndexControl<String, ID, Date> {
 
-    public LazyLuceneControlDate(String startingFolder, Supplier<Map<String, LuceneCachedMap<Long, Date>>> cachingStrategy) {
+    public LazyLuceneControlDate(String startingFolder, Supplier<Map<String, LuceneCachedMap<ID, Date>>> cachingStrategy) {
         super(cachingStrategy);
         this.startingFolder = startingFolder;
 
@@ -61,6 +62,17 @@ public abstract class LazyLuceneControlDate extends LazyLuceneIndexControl<Strin
                 .ifPresent(date -> cachedLast.put(folderName, date));
     }
 
+    protected <ID> boolean mapDateEq(ID k, Date date, Map<ID, Date> currentIDs) {
+        Date mapDate = currentIDs.getOrDefault(k, null);
+        if (Objects.equals(mapDate, date)) {
+            return true;
+        }
+        if (mapDate != null && date != null) {
+            return mapDate.getTime() == date.getTime();
+        }
+        return false;
+    }
+
     @Override
     public void initOrExpandNested() throws IOException {
 //this is not neccessary because we initiate all based on date
@@ -68,7 +80,7 @@ public abstract class LazyLuceneControlDate extends LazyLuceneIndexControl<Strin
 //            for (String folderName : listDistinctFolders) {
 //                dir.apply(folderName); // init all present directories
 //            }
-        
+
         LinkedList<Date> dates = getNestedKeys().stream()
                 .map(m -> SafeOpt.of(m).flatMap(this::parseDate))
                 .filter(m -> m.isPresent())

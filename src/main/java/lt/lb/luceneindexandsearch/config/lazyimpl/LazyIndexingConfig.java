@@ -2,7 +2,6 @@ package lt.lb.luceneindexandsearch.config.lazyimpl;
 
 import java.io.IOException;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 import java.util.stream.Stream;
 import lt.lb.commons.containers.caching.Dependency;
 import lt.lb.commons.containers.caching.lazy.LazyProxy;
