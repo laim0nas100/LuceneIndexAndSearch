@@ -13,6 +13,7 @@ import lt.lb.uncheckedutils.SafeOpt;
 /**
  *
  * @author laim0nas100
+ * @param <ID>
  */
 public abstract class LazyLuceneControlDate<ID> extends LazyLuceneIndexControl<String, ID, Date> {
 

@@ -34,7 +34,7 @@ import org.apache.logging.log4j.Logger;
 
 /**
  *
- * @author Lemmin
+ * @author laim0nas100
  */
 public class Q {
 
@@ -85,38 +85,24 @@ public class Q {
     }
 
     public static void transactionRun(KindConfig conf, UncheckedConsumer<EntityManager> run) throws IOException {
-        try {
 
-            if (conf.useAsync()) {
-                conf.getEntityFacade().executeTransactionAsync(run).get(conf.getSecondsTimeout(), TimeUnit.SECONDS);
-            } else {
-                conf.getEntityFacade().executeTransaction(() -> {
-                    run.accept(conf.getEntityManager());
-                });
-            }
-
-//           
-        } catch (Exception ex) {
-            LOGGER.error("TX error", ex);
-            throw NestedException.of(ex);
-        }
+        conf.getLuceneExecutor().execute(() -> {
+            conf.getEntityFacade().executeTransaction(() -> {
+                run.accept(conf.getEntityManager());
+            });
+        }).peekError(err -> {
+            LOGGER.error("Q error", err);
+        }).throwIfErrorUnwrapping(IOException.class);
     }
 
     public static <T> T transactionCall(KindConfig conf, UncheckedFunction<EntityManager, T> call) throws IOException {
-        try {
-            if (conf.useAsync()) {
-                return conf.getEntityFacade().executeTransactionAsync(call).get(conf.getSecondsTimeout(), TimeUnit.SECONDS);
-
-            }
+        return conf.getLuceneExecutor().call(() -> {
             return conf.getEntityFacade().executeTransaction(() -> {
                 return call.apply(conf.getEntityManager());
             });
-
-//           
-        } catch (Exception ex) {
-            LOGGER.error("TX error", ex);
-            throw NestedException.of(ex);
-        }
+        }).peekError(err -> {
+            LOGGER.error("Q error", err);
+        }).throwIfErrorUnwrapping(IOException.class).orNull();
     }
 
     public static List<LuceneFile> listAllFiles(DirConfig conf) throws IOException {
@@ -253,7 +239,7 @@ public class Q {
         });
     }
 
-     public static SafeOpt<Date> fileLastMofified(DirConfig conf, String fileName) throws IOException {
+    public static SafeOpt<Date> fileLastMofified(DirConfig conf, String fileName) throws IOException {
         LOGGER.trace("fileLastMofified({},{})", conf, fileName);
         Objects.requireNonNull(conf);
         Objects.requireNonNull(fileName);
@@ -264,8 +250,8 @@ public class Q {
                     .throwIfErrorAsNested();
         });
     }
-     
-     public static SafeOpt<Date> fileDirectoryLastMofified(DirConfig conf) throws IOException {
+
+    public static SafeOpt<Date> fileDirectoryLastMofified(DirConfig conf) throws IOException {
         LOGGER.trace("fileDirectoryLastMofified({)", conf);
         Objects.requireNonNull(conf);
         return transactionCall(conf, em -> {
@@ -277,7 +263,7 @@ public class Q {
                     .throwIfErrorAsNested();
         });
     }
-    
+
     public static SafeOpt<InputStream> fileContent(DirConfig conf, String fileName) throws IOException {
         LOGGER.trace("fileContent({},{})", conf, fileName);
         Objects.requireNonNull(conf);

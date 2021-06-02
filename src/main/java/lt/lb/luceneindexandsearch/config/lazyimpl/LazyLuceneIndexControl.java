@@ -95,6 +95,7 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
     protected abstract CheckedExecutor getAccessExecutor();
 
     protected LuceneCachedMap<ID, D> populateMap(Property prop) throws IOException {
+         logger.trace("populateMap {}", prop);
         Map<ID, D> map = new HashMap<>();
         getLuceneExecutor().execute(() -> {
             getLuceneServicesResolver().getSearch(prop)
@@ -113,6 +114,7 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
     }
 
     protected LuceneCachedMap<ID, D> getLazyCache(Property prop) {
+        logger.trace("getLazyCache {}", prop);
         return getNestedCachedMap().computeIfAbsent(prop, k -> Checked.uncheckedCall(() -> populateMap(k)));
     }
 
@@ -131,6 +133,15 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
     }
 
     public abstract void deleteFolderLogic(Property folderName) throws IOException;
+
+    @Override
+    public Long indexedCount(Property prop) throws IOException {
+        return getLuceneExecutor().call(() -> {
+            return getLuceneServicesResolver().getSearch(prop).count(new MatchAllDocsQuery());
+        })
+                .throwIfErrorUnwrapping(IOException.class)
+                .get();
+    }
 
     protected Query idsToQuery(Collection<ID> ids, Property folderName) throws IOException {
         if (ids.isEmpty()) {
@@ -161,7 +172,7 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
     }
 
     @Override
-    public void updateIndexDeletions(Property folderName) throws IOException {
+    public void updateIndexDeletion(Property folderName) throws IOException {
         List<ID> idsToDelete = getAccessExecutor().call(() -> {
             return new ArrayList<>(idsToDelete(folderName, getCurrentIDs(folderName)));
 
@@ -199,7 +210,7 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
     public void updateIndexAddition(Property folderName) throws IOException {
         Map<ID, D> idsToAdd = getAccessExecutor().call(() -> {
             return idsToAdd(folderName, getCurrentIDs(folderName));
-        }).throwIfErrorUnwrapping(IOException.class).get();
+        }).throwIfErrorUnwrapping(IOException.class).orElseGet(HashMap::new);
         if (idsToAdd.isEmpty()) {
             return;
         }
@@ -265,7 +276,7 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
     public void updateIndexChange(Property folderName) throws IOException {
         Map<ID, D> idsToChange = getAccessExecutor().call(() -> {
             return idsToChange(folderName, getCurrentIDs(folderName));
-        }).throwIfErrorUnwrapping(IOException.class).get();
+        }).throwIfErrorUnwrapping(IOException.class).orElseGet(HashMap::new);
         if (idsToChange.isEmpty()) {
             return;
         }
@@ -338,7 +349,7 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
                 }
                 updateIndexAddition(key);
                 updateIndexChange(key);
-                updateIndexDeletions(key);
+                updateIndexDeletion(key);
 //                updateIndexVersion(key);
 
                 dir.syncRemote();

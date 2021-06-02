@@ -12,6 +12,7 @@ import java.util.Optional;
 import lt.lb.lucenejpa.SyncDirectory;
 import org.apache.lucene.index.CheckIndex;
 import org.apache.lucene.index.CheckIndex.Status;
+import org.apache.lucene.search.MatchAllDocsQuery;
 
 /**
  *
@@ -132,6 +133,17 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
     public default List<Property> getNestedKeys() {
         return new ArrayList<>((getLuceneServicesResolver().getMultiIndexingConfig().getIndexingConfigMap().keySet()));
     }
+    
+    public Long indexedCount(Property prop) throws IOException;
+    
+    
+    public default Long indexedCount() throws IOException{
+        Long sum = 0L;
+        for(Property prop:getNestedKeys()){
+            sum += indexedCount(prop);
+        }
+        return sum;
+    }
 
     /**
      * Delete every Lucene file associated with this folder
@@ -152,12 +164,13 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
      * deleted, then delete them and update the index
      *
      * @param folderName
+     * @throws java.io.IOException
      */
-    public void updateIndexDeletions(Property folderName) throws IOException;
+    public void updateIndexDeletion(Property folderName) throws IOException;
 
     public default void updateIndexesDeletions() throws IOException {
         for (Property key : getNestedKeys()) {
-            updateIndexDeletions(key);
+            updateIndexDeletion(key);
         }
     }
 
@@ -220,7 +233,7 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
     public default void periodicMaintenance(Property folder) throws IOException {
         updateIndexAddition(folder);
         updateIndexChange(folder);
-        updateIndexDeletions(folder);
+        updateIndexDeletion(folder);
         updateIndexVersion(folder);
     }
 

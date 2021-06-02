@@ -1,10 +1,9 @@
 package lt.lb.lucenejpa;
 
 import java.util.Objects;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
 import javax.persistence.EntityManager;
 import lt.lb.commons.jpa.EntityFacade;
+import lt.lb.uncheckedutils.CheckedExecutor;
 
 /**
  *
@@ -17,15 +16,11 @@ public class Forwarding {
         public KindConfig getDelegate();
 
         @Override
-        public default ScheduledExecutorService getSchedService() {
-            return getDelegate().getSchedService();
+        public default CheckedExecutor getLuceneExecutor() {
+            return getDelegate().getLuceneExecutor();
         }
 
-        @Override
-        public default ExecutorService getService() {
-            return getDelegate().getService();
-        }
-
+        
         @Override
         public default String getConfigID() {
             return getDelegate().getConfigID();
@@ -51,10 +46,6 @@ public class Forwarding {
             return getDelegate().getEntityManager();
         }
 
-        @Override
-        public default boolean useAsync() {
-            return getDelegate().useAsync();
-        }
 
         @Override
         public default long getSecondsTimeout() {

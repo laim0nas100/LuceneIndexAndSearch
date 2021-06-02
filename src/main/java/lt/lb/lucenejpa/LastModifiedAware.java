@@ -72,8 +72,6 @@ public interface LastModifiedAware {
             public void removeChange(String name) {
                 map.remove(name);
             }
-            
-            
         };
     }
 }

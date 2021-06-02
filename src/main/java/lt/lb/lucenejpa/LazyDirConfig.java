@@ -1,13 +1,9 @@
 package lt.lb.lucenejpa;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Supplier;
 import javax.persistence.EntityManager;
-import lt.lb.commons.Java;
 import lt.lb.commons.jpa.EntityFacade;
-import lt.lb.commons.threads.executors.FastExecutor;
-import lt.lb.commons.threads.executors.scheduled.DelayedTaskExecutor;
+import lt.lb.uncheckedutils.CheckedExecutor;
 
 /**
  *
@@ -20,8 +16,7 @@ public class LazyDirConfig implements DirConfig {
     protected String fileOrigin;
     protected Supplier<EntityManager> entityManagerSupplier;
     protected Supplier<EntityFacade> entityFacadeSupplier;
-    protected ExecutorService executor = new FastExecutor(Java.getAvailableProcessors());
-    protected ScheduledExecutorService scheduler = new DelayedTaskExecutor(executor);
+    protected Supplier<CheckedExecutor> luceneExecutorSuplier;
 
     @Override
     public String getFolderName() {
@@ -67,15 +62,14 @@ public class LazyDirConfig implements DirConfig {
     public void setEntityFacadeSupplier(Supplier<EntityFacade> entityFacadeSupplier) {
         this.entityFacadeSupplier = entityFacadeSupplier;
     }
-
+    
     @Override
-    public ScheduledExecutorService getSchedService() {
-        return scheduler;
+    public CheckedExecutor getLuceneExecutor(){
+       return this.luceneExecutorSuplier.get();
     }
 
-    @Override
-    public ExecutorService getService() {
-        return executor;
+    public void setLuceneExecutorSuplier(Supplier<CheckedExecutor> luceneExecutorSuplier) {
+        this.luceneExecutorSuplier = luceneExecutorSuplier;
     }
 
 }

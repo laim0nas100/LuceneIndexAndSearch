@@ -1,26 +1,19 @@
 package lt.lb.lucenejpa;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
 import javax.persistence.EntityManager;
 import lt.lb.commons.jpa.EntityFacade;
+import lt.lb.uncheckedutils.CheckedExecutor;
 
 /**
  *
  * @author laim0nas100
  */
 public interface KindConfig {
-
-    public ScheduledExecutorService getSchedService();
-
-    public ExecutorService getService();
+    
+    CheckedExecutor getLuceneExecutor();
 
     public default long getSecondsTimeout() {
         return 10;
-    }
-
-    public default boolean useAsync() {
-        return false;
     }
 
     public String getConfigID();

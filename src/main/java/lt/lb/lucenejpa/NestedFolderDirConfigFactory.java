@@ -3,11 +3,10 @@ package lt.lb.lucenejpa;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
 import javax.persistence.EntityManager;
 import lt.lb.commons.jpa.EntityFacade;
 import lt.lb.lucenejpa.Forwarding.DirConfigFromKind;
+import lt.lb.uncheckedutils.CheckedExecutor;
 import org.apache.lucene.util.IOUtils;
 
 /**
@@ -32,25 +31,12 @@ public class NestedFolderDirConfigFactory implements IOUtils.IOFunction<String, 
 
     }
 
-    @Override
-    public ScheduledExecutorService getSchedService() {
-        return mainKind.getSchedService();
-    }
-
-    @Override
-    public ExecutorService getService() {
-        return mainKind.getService();
-    }
 
     @Override
     public long getSecondsTimeout() {
         return mainKind.getSecondsTimeout();
     }
 
-    @Override
-    public boolean useAsync() {
-        return mainKind.useAsync();
-    }
 
     @Override
     public String getConfigID() {
@@ -75,6 +61,11 @@ public class NestedFolderDirConfigFactory implements IOUtils.IOFunction<String, 
     @Override
     public EntityFacade getEntityFacade() {
         return mainKind.getEntityFacade();
+    }
+
+    @Override
+    public CheckedExecutor getLuceneExecutor() {
+        return mainKind.getLuceneExecutor();
     }
 
 }
