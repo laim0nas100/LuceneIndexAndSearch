@@ -177,6 +177,8 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
             return new ArrayList<>(idsToDelete(folderName, getCurrentIDs(folderName)));
 
         }).throwIfErrorUnwrapping(IOException.class).get();
+        
+        logger.trace("updateIndexDeletion({},{})",folderName,idsToDelete);
         if (idsToDelete.isEmpty()) {
             return;
         }
@@ -286,6 +288,7 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
 
     public void writeIdsToIndex(boolean update, Property folderName, Map<ID, D> ids) throws IOException {
         getLuceneExecutor().execute(() -> {
+            logger.trace("writeIdsToIndex({},{},{})",update,folderName,ids);
 
             LuceneServicesResolver<Property> resolver = getLuceneServicesResolver();
             DocumentFieldsConfig fieldsConfig = resolver.getReader(folderName).getDocumentFieldsConfig();

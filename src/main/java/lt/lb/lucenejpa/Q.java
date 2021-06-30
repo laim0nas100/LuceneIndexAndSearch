@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.persistence.EntityManager;
+import javax.persistence.LockModeType;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
@@ -62,14 +63,19 @@ public class Q {
     private static JpaQueryDecor<LuceneFile, LuceneFile> baseDecor(DirConfig conf) {
         Objects.requireNonNull(conf);
         return baseKindDecor(conf)
-                .withPred(LuceneFile_.folderName, (c, p) -> c.equal(p, conf.getFolderName()));
+                .withPred(LuceneFile_.folderName, (c, p) -> c.equal(p, conf.getFolderName())).withDec4(p4 -> {
+            p4.typedQuery().setLockMode(LockModeType.NONE);
+        });
     }
 
     private static JpaQueryDecor<LuceneFile, LuceneFile> baseDecor(DirConfig conf, String fileName) {
         Objects.requireNonNull(conf);
         Objects.requireNonNull(fileName);
         return baseDecor(conf)
-                .withPred(LuceneFile_.fileName, (c, p) -> c.equal(p, fileName));
+                .withPred(LuceneFile_.fileName, (c, p) -> c.equal(p, fileName))
+                .withDec4(p4 -> {
+                    p4.typedQuery().setLockMode(LockModeType.NONE);
+                });
     }
 
     public static class IdName {
@@ -87,9 +93,7 @@ public class Q {
     public static void transactionRun(KindConfig conf, UncheckedConsumer<EntityManager> run) throws IOException {
 
         conf.getLuceneExecutor().execute(() -> {
-            conf.getEntityFacade().executeTransaction(() -> {
-                run.accept(conf.getEntityManager());
-            });
+            run.accept(conf.getEntityManager());
         }).peekError(err -> {
             LOGGER.error("Q error", err);
         }).throwIfErrorUnwrapping(IOException.class);
@@ -97,9 +101,8 @@ public class Q {
 
     public static <T> T transactionCall(KindConfig conf, UncheckedFunction<EntityManager, T> call) throws IOException {
         return conf.getLuceneExecutor().call(() -> {
-            return conf.getEntityFacade().executeTransaction(() -> {
-                return call.apply(conf.getEntityManager());
-            });
+
+            return call.apply(conf.getEntityManager());
         }).peekError(err -> {
             LOGGER.error("Q error", err);
         }).throwIfErrorUnwrapping(IOException.class).orNull();
@@ -342,6 +345,7 @@ public class Q {
             file.setFileKind(conf.getFileKind());
             file.setFileOrigin(conf.getFileOrigin());
             em.persist(file);
+//            em.flush();
 
             return true;
         });

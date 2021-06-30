@@ -17,4 +17,12 @@
                 <goal>"-Dnbmodelgenclean"</goal>
             </goals>
         </action>
+        <action>
+            <actionName>CUSTOM-update</actionName>
+            <displayName>update</displayName>
+            <goals>
+                <goal>clean</goal>
+                <goal>install</goal>
+            </goals>
+        </action>
     </actions>

@@ -4,6 +4,7 @@ import com.google.common.collect.Streams;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -22,6 +23,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.analysis.tokenattributes.PackedTokenAttributeImpl;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
@@ -31,6 +33,7 @@ import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.WildcardQuery;
+import org.apache.lucene.util.AttributeImpl;
 
 /**
  *
@@ -237,10 +240,25 @@ public class RevFieldWildcardQuery {
     public static void main(String[] args) throws Exception {
         DLog.main().async = false;
         SimpleAnalyzer defaultAnalyzer = Premade.defaultSearchAnalyzer();
+        
+        
 
-//        String term = "*hell?o?? *help?me?jesus? " + " NOT " + " **something else?* regular";
-        String term = "*";
+        String term = "*hell?o?? *help?me?jesus? " + " NOT " + " **something else?* regular";
+//        String term = "*";
 
+        TokenStream tokenStream = defaultAnalyzer.tokenStream(OPERATOR_AND, term);
+        tokenStream.reset();
+        while(true){
+           
+            boolean inc = tokenStream.incrementToken();
+           
+             CharTermAttribute attribute = tokenStream.getAttribute(CharTermAttribute.class);
+            DLog.print(attribute);
+             if(!inc){
+                break;
+            }
+        }
+        tokenStream.close();
         Query query = buildQuery(term, defaultAnalyzer, "field", "revField");
 
         DLog.print(query);
