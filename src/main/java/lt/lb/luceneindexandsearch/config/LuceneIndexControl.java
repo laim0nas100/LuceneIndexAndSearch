@@ -12,7 +12,7 @@ import java.util.Optional;
 import lt.lb.lucenejpa.SyncDirectory;
 import org.apache.lucene.index.CheckIndex;
 import org.apache.lucene.index.CheckIndex.Status;
-import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.index.IndexWriter;
 
 /**
  *
@@ -51,12 +51,10 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Status checked;
-        try (PrintStream printStream = new PrintStream(baos, true);
-                CheckIndex check = new CheckIndex(resolveDirectory(prop))) {
+        try ( PrintStream printStream = new PrintStream(baos, true);  CheckIndex check = new CheckIndex(resolveDirectory(prop))) {
             check.setInfoStream(printStream, verbose);
 
             checked = check.checkIndex();
-            check.close();
 
         }
         sb.append(baos.toString(StandardCharsets.UTF_8.name()));
@@ -67,13 +65,11 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Status checked;
-        try (PrintStream printStream = new PrintStream(baos, true);
-                CheckIndex check = new CheckIndex(resolveDirectory(prop))) {
+        try ( PrintStream printStream = new PrintStream(baos, true);  CheckIndex check = new CheckIndex(resolveDirectory(prop))) {
             check.setChecksumsOnly(true);
             check.setInfoStream(printStream, verbose);
 
             checked = check.checkIndex();
-            check.close();
 
         }
         sb.append(baos.toString(StandardCharsets.UTF_8.name()));
@@ -82,12 +78,10 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
 
     public default void fixIndex(Property prop, StringBuilder sb, boolean verbose) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (PrintStream printStream = new PrintStream(baos, true);
-                CheckIndex check = new CheckIndex(resolveDirectory(prop))) {
+        try ( PrintStream printStream = new PrintStream(baos, true);  CheckIndex check = new CheckIndex(resolveDirectory(prop))) {
 
             check.setInfoStream(printStream, verbose);
             check.exorciseIndex(check.checkIndex());
-            check.close();
 
         }
         sb.append(baos.toString(StandardCharsets.UTF_8.name()));
@@ -123,7 +117,7 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
             };
         }
     }
-    
+
     public LuceneServicesResolver<Property> getLuceneServicesResolver();
 
     public Map<ID, D> getCachedIDs(Property prop) throws IOException;
@@ -133,14 +127,23 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
     public default List<Property> getNestedKeys() {
         return new ArrayList<>((getLuceneServicesResolver().getMultiIndexingConfig().getIndexingConfigMap().keySet()));
     }
-    
+
     public Long indexedCount(Property prop) throws IOException;
-    
-    
-    public default Long indexedCount() throws IOException{
+
+    public default Long indexedCount() throws IOException {
         Long sum = 0L;
-        for(Property prop:getNestedKeys()){
+        for (Property prop : getNestedKeys()) {
             sum += indexedCount(prop);
+        }
+        return sum;
+    }
+
+    public Long indexableCount(Property prop) throws IOException;
+
+    public default Long indexableCount() throws IOException {
+        Long sum = 0L;
+        for (Property prop : getNestedKeys()) {
+            sum += indexableCount(prop);
         }
         return sum;
     }
@@ -221,20 +224,73 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
     public void updateIndexVersion(Property folderName) throws IOException;
 
     public default void periodicMaintenance() throws IOException {
+
+        updateIndexesPrepare();
         updateIndexesAddition();
         updateIndexesChange();
         updateIndexesDeletions();
-        updateIndexVersions();
+        updateIndexesCleanup();
 
     }
 
     public void initOrExpandNested() throws IOException;
 
+    /**
+     * Initializes directory if was empty. Mainly to write segments file.
+     *
+     * @param folder
+     * @throws IOException
+     */
+    public default void updateIndexPrepare(Property folder) throws IOException {
+        IndexingConfig indexing = resolveConfig(folder);
+        SyncDirectory dir = indexing.getDirectory();
+        if (dir.isReadOnly()) {
+            return;
+        }
+        dir.syncLocal();
+        if (dir.isEmpty()) {
+            try ( IndexWriter indexWriter = indexing.getIndexWriter()) {
+                indexWriter.commit();
+            }
+        }
+    }
+
+    public default void updateIndexesPrepare() throws IOException {
+        for (Property prop : getNestedKeys()) {
+            updateIndexPrepare(prop);
+        }
+    }
+
+    /**
+     * Cleans up directory after maintenance. Mainly calls syncRemote.
+     *
+     * @param folder
+     * @throws IOException
+     */
+    public default void updateIndexCleanup(Property folder) throws IOException {
+        IndexingConfig indexing = resolveConfig(folder);
+        SyncDirectory dir = indexing.getDirectory();
+        if (dir.isReadOnly()) {
+            return;
+        }
+        dir.syncRemote();
+    }
+
+    public default void updateIndexesCleanup() throws IOException {
+        for (Property prop : getNestedKeys()) {
+            updateIndexCleanup(prop);
+        }
+    }
+
     public default void periodicMaintenance(Property folder) throws IOException {
+        if (resolveDirectory(folder).isReadOnly()) {
+            return;
+        }
+        updateIndexPrepare(folder);
         updateIndexAddition(folder);
         updateIndexChange(folder);
         updateIndexDeletion(folder);
-        updateIndexVersion(folder);
+        updateIndexCleanup(folder);
     }
 
 }

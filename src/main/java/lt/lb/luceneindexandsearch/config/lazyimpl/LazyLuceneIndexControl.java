@@ -29,6 +29,7 @@ import lt.lb.luceneindexandsearch.config.LuceneServicesResolver;
 import lt.lb.lucenejpa.SyncDirectory;
 import lt.lb.uncheckedutils.Checked;
 import lt.lb.uncheckedutils.CheckedExecutor;
+import lt.lb.uncheckedutils.PassableException;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.logging.log4j.LogManager;
@@ -95,7 +96,7 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
     protected abstract CheckedExecutor getAccessExecutor();
 
     protected LuceneCachedMap<ID, D> populateMap(Property prop) throws IOException {
-         logger.trace("populateMap {}", prop);
+        logger.trace("populateMap {}", prop);
         Map<ID, D> map = new HashMap<>();
         getLuceneExecutor().execute(() -> {
             getLuceneServicesResolver().getSearch(prop)
@@ -177,8 +178,8 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
             return new ArrayList<>(idsToDelete(folderName, getCurrentIDs(folderName)));
 
         }).throwIfErrorUnwrapping(IOException.class).get();
-        
-        logger.trace("updateIndexDeletion({},{})",folderName,idsToDelete);
+
+        logger.trace("updateIndexDeletion({},{})", folderName, idsToDelete);
         if (idsToDelete.isEmpty()) {
             return;
         }
@@ -188,7 +189,7 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
             LuceneServicesResolver<Property> resolver = getLuceneServicesResolver();
             for (List<ID> batch : partition) {
 
-                try (IndexWriter indexWriter = resolver.getWriter(folderName).getIndexWriter()) {
+                try ( IndexWriter indexWriter = resolver.getWriter(folderName).getIndexWriter()) {
                     Query query = idsToQuery(batch, folderName);
                     indexWriter.deleteDocuments(query);
                     indexWriter.commit();
@@ -288,7 +289,7 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
 
     public void writeIdsToIndex(boolean update, Property folderName, Map<ID, D> ids) throws IOException {
         getLuceneExecutor().execute(() -> {
-            logger.trace("writeIdsToIndex({},{},{})",update,folderName,ids);
+            logger.trace("writeIdsToIndex({},{},{})", update, folderName, ids);
 
             LuceneServicesResolver<Property> resolver = getLuceneServicesResolver();
             DocumentFieldsConfig fieldsConfig = resolver.getReader(folderName).getDocumentFieldsConfig();
@@ -301,7 +302,7 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
                     if (maps.isEmpty()) {
                         return null;
                     }
-                    try (IndexWriter indexWriter = resolver.getWriter(folderName).getIndexWriter()) {
+                    try ( IndexWriter indexWriter = resolver.getWriter(folderName).getIndexWriter()) {
                         for (IdMap<ID> idMap : maps) {
                             Document doc = fieldsConfig.createDocument(idMap.map);
                             if (update) {
@@ -337,26 +338,7 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
         for (Property key : nestedKeys) {
 
             getLuceneExecutor().execute(() -> {
-                IndexingConfig indexing = resolveConfig(key);
-                SyncDirectory dir = indexing.getDirectory();
-                dir.syncLocal();
-
-                if (dir.isReadOnly()) {
-                    return;
-                }
-
-                if (dir.isEmpty()) {
-                    try (IndexWriter indexWriter = indexing.getIndexWriter()) {
-                        indexWriter.commit();
-                    }
-                }
-                updateIndexAddition(key);
-                updateIndexChange(key);
-                updateIndexDeletion(key);
-//                updateIndexVersion(key);
-
-                dir.syncRemote();
-
+                periodicMaintenance(key);
             }).peekError(err -> {
                 logger.error("Error at " + key, err);
                 errors.add(err);
@@ -371,9 +353,67 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
             System.gc();
         }
         if (!errors.isEmpty()) {
-            throw new RuntimeException(errors.size() + " errors has occured during maintenance. Check logs.");
+            throw new PassableException(errors.size() + " errors has occured during maintenance. Check logs.");
         }
 
+    }
+
+    @Override
+    public void periodicMaintenance(Property folder) throws IOException {
+        getLuceneExecutor().execute(() -> {
+            LuceneIndexControl.super.periodicMaintenance(folder);
+        }).throwIfErrorUnwrapping(IOException.class);
+
+    }
+
+    @Override
+    public void updateIndexesDeletions() throws IOException {
+        getLuceneExecutor().execute(() -> {
+            LuceneIndexControl.super.updateIndexesDeletions();
+        }).throwIfErrorUnwrapping(IOException.class);
+    }
+
+    @Override
+    public void updateIndexesAddition() throws IOException {
+
+        getLuceneExecutor().execute(() -> {
+            LuceneIndexControl.super.updateIndexesAddition();
+        }).throwIfErrorUnwrapping(IOException.class);
+    }
+
+    @Override
+    public void updateIndexesChange() throws IOException {
+        getLuceneExecutor().execute(() -> {
+            LuceneIndexControl.super.updateIndexesChange();
+        }).throwIfErrorUnwrapping(IOException.class);
+    }
+
+    @Override
+    public void updateIndexPrepare(Property folder) throws IOException {
+        getLuceneExecutor().execute(() -> {
+            LuceneIndexControl.super.updateIndexPrepare(folder);
+        }).throwIfErrorUnwrapping(IOException.class);
+    }
+
+    @Override
+    public void updateIndexesPrepare() throws IOException {
+        getLuceneExecutor().execute(() -> {
+            LuceneIndexControl.super.updateIndexesPrepare();
+        }).throwIfErrorUnwrapping(IOException.class);
+    }
+
+    @Override
+    public void updateIndexCleanup(Property folder) throws IOException {
+        getLuceneExecutor().execute(() -> {
+            LuceneIndexControl.super.updateIndexCleanup(folder);
+        }).throwIfErrorUnwrapping(IOException.class);
+    }
+
+    @Override
+    public void updateIndexesCleanup() throws IOException {
+        getLuceneExecutor().execute(() -> {
+            LuceneIndexControl.super.updateIndexesCleanup();
+        }).throwIfErrorUnwrapping(IOException.class);
     }
 
 }

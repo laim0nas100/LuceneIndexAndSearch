@@ -14,7 +14,6 @@ import lt.lb.commons.threads.executors.TaskBatcher.BatchRunSummary;
 import lt.lb.luceneindexandsearch.config.indexing.IndexingMultiReaderConfig;
 import lt.lb.luceneindexandsearch.config.indexing.IndexingReaderConfig;
 import lt.lb.luceneindexandsearch.config.indexing.IndexingWriterConfig;
-import lt.lb.uncheckedutils.func.UncheckedSupplier;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.search.Query;
 
