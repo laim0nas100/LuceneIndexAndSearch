@@ -13,8 +13,4 @@ public class ParMultiIndexReader extends MultiReader {
     public ParMultiIndexReader(IndexReader... subReaders) throws IOException {
         super(subReaders, false);
     }
-    
-    
-    
-    
 }

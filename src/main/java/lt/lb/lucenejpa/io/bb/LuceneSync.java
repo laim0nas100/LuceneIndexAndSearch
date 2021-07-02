@@ -14,7 +14,6 @@ import lt.lb.commons.io.ExtInputStream;
 import lt.lb.lucenejpa.DirConfig;
 import lt.lb.lucenejpa.Q;
 import lt.lb.lucenejpa.model.LuceneFile;
-import lt.lb.uncheckedutils.SafeOpt;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.store.DataInput;
