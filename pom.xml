@@ -13,7 +13,7 @@
         <lucene.ver>8.8.1</lucene.ver>
         <tika.ver>1.25</tika.ver>
         <lb.dir>com.github.laim0nas100.Commons</lb.dir>
-        <lb.ver>2021.05v2</lb.ver>
+        <lb.ver>2021.07v2</lb.ver>
         
 <!--         <lb.dir>lt.lb.Commons</lb.dir>
         <lb.ver>local-jar</lb.ver>-->
@@ -54,7 +54,7 @@
         <dependency>
             <groupId>com.github.laim0nas100</groupId>
             <artifactId>UncheckedUtils</artifactId>
-            <version>2021.07v1</version>
+            <version>2021.07v2</version>
         </dependency>
         
         <!-- https://mvnrepository.com/artifact/org.apache.lucene/lucene-core -->
@@ -149,6 +149,11 @@
             <groupId>org.hibernate.validator</groupId>
             <artifactId>hibernate-validator-annotation-processor</artifactId>
             <version>6.0.2.Final</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.laim0nas100</groupId>
+            <artifactId>ConfigurableLexer</artifactId>
+            <version>2021.07v2</version>
         </dependency>
     </dependencies>
     

@@ -58,7 +58,7 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
     public static final Logger logger = LogManager.getLogger(LazyLuceneIndexControl.class);
     protected LuceneServicesResolver<Property> luceneServices;
 
-    protected int batchWriteCount = 100;
+    protected int batchWriteCount = 25;
     protected Supplier<Map<Property, LuceneCachedMap<ID, D>>> cachingStrategy;
     protected boolean clearNestedCacheMapEveryCycle = true;
     protected boolean callGC = true;

@@ -1,5 +1,6 @@
 package lt.lb.luceneindexandsearch.query;
 
+import com.google.common.collect.Streams;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -8,18 +9,12 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lt.lb.commons.DLog;
-import lt.lb.configurablelexer.lexer.SimpleLexer;
-import lt.lb.configurablelexer.lexer.matchers.KeywordMatcher;
-import lt.lb.configurablelexer.lexer.matchers.StringMatcher;
-import lt.lb.configurablelexer.parse.DefaultMatchedTokenProducer;
-import lt.lb.configurablelexer.parse.MatchedTokens;
-import lt.lb.configurablelexer.parse.TokenMatcher;
-import lt.lb.configurablelexer.parse.TokenMatchers;
-import lt.lb.configurablelexer.token.ConfToken;
-import lt.lb.configurablelexer.token.DefaultConfTokenizer;
-import lt.lb.configurablelexer.token.base.KeywordToken;
-import lt.lb.configurablelexer.token.base.LiteralToken;
-import lt.lb.configurablelexer.token.base.StringToken;
+import lt.lb.commons.parsing.Lexer;
+import lt.lb.commons.parsing.token.Token;
+import lt.lb.commons.parsing.token.match.DefaultMatchedTokenProducer;
+import lt.lb.commons.parsing.token.match.MatchedTokens;
+import lt.lb.commons.parsing.token.match.TokenMatcher;
+import lt.lb.commons.parsing.token.match.TokenMatchers;
 import lt.lb.luceneindexandsearch.indexing.content.Premade;
 import lt.lb.luceneindexandsearch.indexing.content.SimpleAnalyzer;
 import org.apache.commons.lang3.RegExUtils;
@@ -40,7 +35,8 @@ import org.apache.lucene.search.WildcardQuery;
  *
  * @author laim0nas100
  */
-public class RevFieldWildcardQuery {
+@Deprecated
+public class RevFieldWildcardQueryOld {
 
     public static final String OPERATOR_AND = "and";
     public static final String OPERATOR_OR = "or";
@@ -76,50 +72,28 @@ public class RevFieldWildcardQuery {
 
     static final Pattern REPLACE_REPEATING_WILDCARD = Pattern.compile("(\\*+\\?+)|(\\?+\\*+)|(\\*)+");
 
-    public static Query buildQuery(final String term, Analyzer analyzer, String fieldName, String revFieldName) throws Exception {
+    public static Query buildQuery(final String term, Analyzer analyzer, String fieldName, String revFieldName) throws IOException, Lexer.StringNotTerminatedException {
         return buildQuery(term, analyzer, fieldName, revFieldName, false, BooleanClause.Occur.MUST); // default AND
     }
 
-    public static Query buildQuery(final String term, Analyzer analyzer, String fieldName, String revFieldName, boolean allowAll, BooleanClause.Occur defaultOccur) throws Exception {
+    public static Query buildQuery(final String term, Analyzer analyzer, String fieldName, String revFieldName, boolean allowAll, BooleanClause.Occur defaultOccur) throws IOException, Lexer.StringNotTerminatedException {
 
         String replaced = RegExUtils.replaceAll(term, REPLACE_REPEATING_WILDCARD, "*");
 
         List<String> terms = tokenizeTerms(replaced, analyzer);
-        DefaultConfTokenizer tokenizer = new DefaultConfTokenizer();
-        SimpleLexer simpleLexer = new SimpleLexer(tokenizer) {
-            @Override
-            public ConfToken makeLexeme(int from, int to, StringMatcher.MatcherMatch matcher, String unbrokenString) throws Exception {
-                String val = unbrokenString.substring(from, to);
-                if (matcher.match instanceof KeywordMatcher) {
-                    return new KeywordToken(val);
-                }
-                return new StringToken(val);
-            }
 
-            @Override
-            public ConfToken makeLiteral(int from, int to, String unbrokenString) throws Exception {
-                String val = unbrokenString.substring(from, to);
-                return new LiteralToken(val);
-            }
-        };
-
-        tokenizer.nest(f -> simpleLexer);
-
-        simpleLexer.addMatcher(new KeywordMatcher(OPERATOR_WILD_QUESTION, true));
-        simpleLexer.addMatcher(new KeywordMatcher(OPERATOR_WILD_QUESTION_ESC, true));
-        simpleLexer.addMatcher(new KeywordMatcher(OPERATOR_WILD_STAR, true));
-        simpleLexer.addMatcher(new KeywordMatcher(OPERATOR_WILD_STAR_ESC, true));
-        simpleLexer.addMatcher(new KeywordMatcher(OPERATOR_AND, false));
-        simpleLexer.addMatcher(new KeywordMatcher(OPERATOR_NOT, false));
-        simpleLexer.addMatcher(new KeywordMatcher(OPERATOR_OR, false));
+        Lexer lexer = new Lexer();
+        lexer.addKeywordBreaking(OPERATOR_WILD_QUESTION, OPERATOR_WILD_QUESTION_ESC, OPERATOR_WILD_STAR, OPERATOR_WILD_STAR_ESC);
+        lexer.addKeyword(OPERATOR_AND, OPERATOR_NOT, OPERATOR_OR);
+        lexer.setSkipWhitespace(true);
         LinkedList<List<MatchedTokens>> splitMatch = new LinkedList<>();
 
         for (String t : terms) {
-            simpleLexer.reset(t);
-            DefaultMatchedTokenProducer defaultMatchedTokenProducer = new DefaultMatchedTokenProducer(simpleLexer, asList);
-            List<MatchedTokens> produceItems = defaultMatchedTokenProducer.produceItems();
-            splitMatch.add(produceItems);
-
+            lexer.resetLines(Arrays.asList(t));
+            ArrayList<Token> remainingTokens = lexer.getRemainingTokens();
+            DefaultMatchedTokenProducer producer = new DefaultMatchedTokenProducer(remainingTokens.iterator(), asList);
+            List<MatchedTokens> matched = Streams.stream(producer).collect(Collectors.toList());
+            splitMatch.add(matched);
         }
 
         if (splitMatch.isEmpty()) {
@@ -139,7 +113,7 @@ public class RevFieldWildcardQuery {
         }
 
         BooleanQuery.Builder builder = new BooleanQuery.Builder();
-        BooleanClause.Occur nextOccur = defaultOccur;
+        BooleanClause.Occur nextOccur = BooleanClause.Occur.SHOULD;
         boolean occurChanged = false;
         for (List<MatchedTokens> split : splitMatch) {
             boolean needreverse = false;
@@ -148,11 +122,11 @@ public class RevFieldWildcardQuery {
             if (occurChanged) {
                 occurChanged = false;
             } else {
-                nextOccur = defaultOccur;
+                nextOccur = BooleanClause.Occur.SHOULD;
             }
 
-            LinkedList<ConfToken> q = new LinkedList<>();
-            LinkedList<ConfToken> rev = new LinkedList<>();
+            LinkedList<Token> q = new LinkedList<>();
+            LinkedList<Token> rev = new LinkedList<>();
             for (MatchedTokens ma : split) {
 
                 if (ma.contains(wildCard_word_wildcard)) { // main case
@@ -199,7 +173,7 @@ public class RevFieldWildcardQuery {
                         // need to remove first wild card
                         q.removeFirst();
                     }
-                    String query = q.stream().map(m -> m.getValue()).collect(Collectors.joining());
+                    String query = q.stream().map(m -> m.value).collect(Collectors.joining());
                     querys.add(new WildcardQuery(new Term(fieldName, query)));
 
                 }
@@ -208,19 +182,19 @@ public class RevFieldWildcardQuery {
                         // need to remove first wild card
                         rev.removeFirst();
                     }
-                    String revQeury = rev.stream().map(m -> m.getValue()).map(StringUtils::reverse).collect(Collectors.joining());
+                    String revQeury = rev.stream().map(m -> m.value).map(StringUtils::reverse).collect(Collectors.joining());
                     querys.add(new WildcardQuery(new Term(revFieldName, revQeury)));
 
                 }
                 if (simpleTerm && !(needregular || needreverse)) {
-                    String query = q.stream().map(m -> m.getValue()).collect(Collectors.joining());
+                    String query = q.stream().map(m -> m.value).collect(Collectors.joining());
                     querys.add(new TermQuery(new Term(fieldName, query)));
                 }
                 if (querys.size() > 0) {
                     if (querys.size() > 1) {
                         BooleanQuery.Builder inner = new BooleanQuery.Builder();
                         for (Query query : querys) {
-                            inner.add(query, BooleanClause.Occur.SHOULD); // duplicating querys
+                            inner.add(query, defaultOccur);
                         }
                         builder.add(inner.build(), nextOccur);
                     } else {
@@ -259,26 +233,24 @@ public class RevFieldWildcardQuery {
 
     }
 
-    public static String tokenizeTermsToString(String tokenize, Analyzer analyzer) throws IOException {
-        return tokenizeTerms(tokenize, analyzer).stream().collect(Collectors.joining(" "));
-    }
-
     public static void main(String[] args) throws Exception {
         DLog.main().async = false;
         SimpleAnalyzer defaultAnalyzer = Premade.defaultSearchAnalyzer();
+        
+        
 
         String term = "*hell?o?? *help?me?jesus? " + " NOT " + " **something else?* regular";
-//        String term = "*help?me?jesus? ";
+//        String term = "*";
 
         TokenStream tokenStream = defaultAnalyzer.tokenStream(OPERATOR_AND, term);
         tokenStream.reset();
-        while (true) {
-
+        while(true){
+           
             boolean inc = tokenStream.incrementToken();
-
-            CharTermAttribute attribute = tokenStream.getAttribute(CharTermAttribute.class);
+           
+             CharTermAttribute attribute = tokenStream.getAttribute(CharTermAttribute.class);
             DLog.print(attribute);
-            if (!inc) {
+             if(!inc){
                 break;
             }
         }
