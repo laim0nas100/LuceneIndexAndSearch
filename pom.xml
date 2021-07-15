@@ -13,7 +13,7 @@
         <lucene.ver>8.8.1</lucene.ver>
         <tika.ver>1.25</tika.ver>
         <lb.dir>com.github.laim0nas100.Commons</lb.dir>
-        <lb.ver>2021.07v2</lb.ver>
+        <lb.ver>2021.07v3</lb.ver>
         
 <!--         <lb.dir>lt.lb.Commons</lb.dir>
         <lb.ver>local-jar</lb.ver>-->
@@ -49,12 +49,6 @@
             <groupId>${lb.dir}</groupId>
             <artifactId>commonslb-lexing</artifactId>
             <version>${lb.ver}</version>
-        </dependency>
-        
-        <dependency>
-            <groupId>com.github.laim0nas100</groupId>
-            <artifactId>UncheckedUtils</artifactId>
-            <version>2021.07v2</version>
         </dependency>
         
         <!-- https://mvnrepository.com/artifact/org.apache.lucene/lucene-core -->
