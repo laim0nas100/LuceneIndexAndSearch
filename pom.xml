@@ -147,7 +147,7 @@
         <dependency>
             <groupId>com.github.laim0nas100</groupId>
             <artifactId>ConfigurableLexer</artifactId>
-            <version>2021.07v2</version>
+            <version>2021.08v1</version>
         </dependency>
     </dependencies>
     

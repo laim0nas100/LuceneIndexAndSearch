@@ -8,6 +8,10 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lt.lb.commons.DLog;
+import lt.lb.configurablelexer.anymatch.PosMatch;
+import lt.lb.configurablelexer.anymatch.PosMatched;
+import lt.lb.configurablelexer.anymatch.SimpleStringPosMatcherCombinator;
+import lt.lb.configurablelexer.anymatch.impl.Matchers;
 import lt.lb.configurablelexer.lexer.SimpleLexer;
 import lt.lb.configurablelexer.lexer.matchers.KeywordMatcher;
 import lt.lb.configurablelexer.lexer.matchers.StringMatcher;
@@ -45,34 +49,42 @@ public class RevFieldWildcardQuery {
     public static final String OPERATOR_AND = "and";
     public static final String OPERATOR_OR = "or";
     public static final String OPERATOR_NOT = "not";
+    
 
     public static final String OPERATOR_WILD_QUESTION = "?";
     public static final String OPERATOR_WILD_STAR = "*";
     public static final String OPERATOR_WILD_QUESTION_ESC = "\\?";
     public static final String OPERATOR_WILD_STAR_ESC = "\\*";
 
-    public static final TokenMatcher and = TokenMatchers.exact(OPERATOR_AND);
-    public static final TokenMatcher or = TokenMatchers.exact(OPERATOR_OR);
-    public static final TokenMatcher not = TokenMatchers.exact(OPERATOR_NOT);
+    public static final Matchers<ConfToken,String> M = new Matchers<ConfToken,String>().setDefaultName("no name");
+    
+    public static final PosMatch<ConfToken,String> and = exact(OPERATOR_AND);
+    public static final PosMatch<ConfToken,String> or = exact(OPERATOR_OR);
+    public static final PosMatch<ConfToken,String> not = exact(OPERATOR_NOT);
 
-    public static final TokenMatcher wildStar = TokenMatchers.exact(OPERATOR_WILD_STAR).named("wild_star");
-    public static final TokenMatcher wildQuestion = TokenMatchers.exact(OPERATOR_WILD_QUESTION).named("wild_question");
-    public static final TokenMatcher wildStarEsc = TokenMatchers.exact(OPERATOR_WILD_STAR_ESC).named("wild_star_esc");
-    public static final TokenMatcher wildQuestionEsc = TokenMatchers.exact(OPERATOR_WILD_QUESTION_ESC).named("wild_question_escape");
-    public static final TokenMatcher literal = TokenMatchers.literalType();
+    
+    public static final PosMatch<ConfToken,String> wildStar = exact(OPERATOR_WILD_STAR);
+    public static final PosMatch<ConfToken,String> wildQuestion = exact(OPERATOR_WILD_QUESTION);
+    public static final PosMatch<ConfToken,String> wildStarEsc = exact(OPERATOR_WILD_STAR_ESC);
+    public static final PosMatch<ConfToken,String> wildQuestionEsc = exact(OPERATOR_WILD_QUESTION_ESC);
+    public static final PosMatch<ConfToken,String> literal = M.makeNew("literal").ofType(LiteralToken.class);
 
-    public static final TokenMatcher concatable = TokenMatchers.or(literal, wildStarEsc, wildQuestionEsc).named("concatable");
-    public static final TokenMatcher wildCard = TokenMatchers.or(wildStar, wildQuestion).named("wild_card");
-    public static final TokenMatcher wildCard_word = TokenMatchers.concat(wildCard, concatable);
-    public static final TokenMatcher word_wildCard = TokenMatchers.concat(concatable, wildCard);
-    public static final TokenMatcher wildCard_word_wildcard = TokenMatchers.concat(wildCard, concatable, wildCard);
-    public static final TokenMatcher gate = TokenMatchers.or(and, or, not).named("gate");
+    public static final PosMatch<ConfToken,String> concatable = M.makeNew("concatable").or(literal, wildStarEsc, wildQuestionEsc);
+    public static final PosMatch<ConfToken,String> wildCard = M.makeNew("wild_card").or(wildStar, wildQuestion);
+    public static final PosMatch<ConfToken,String> wildCard_word = M.makeNew("wildCard_word").concat(wildCard, concatable);
+    public static final PosMatch<ConfToken,String> word_wildCard = M.makeNew("word_wildCard").concat(concatable, wildCard);
+    public static final PosMatch<ConfToken,String> wildCard_word_wildcard = M.makeNew("wildCard_word_wildcard").concat(wildCard, concatable, wildCard);
+    public static final PosMatch<ConfToken,String> gate = M.makeNew("gate").or(and, or, not);
 
-    static final List<TokenMatcher> asList = Arrays.asList(concatable,
+    static final List<PosMatch<ConfToken,String>> asList = Arrays.asList(concatable,
             wildCard_word_wildcard, word_wildCard, wildCard_word, wildCard,
             wildQuestion, wildStar,
             gate, and, or, not
     );
+    
+    private static PosMatch<ConfToken,String> exact(String str){
+        return M.makeNew(str).isWhen(c->StringUtils.equals(c.getValue(), str));
+    }
 
     static final Pattern REPLACE_REPEATING_WILDCARD = Pattern.compile("(\\*+\\?+)|(\\?+\\*+)|(\\*)+");
 
@@ -103,7 +115,7 @@ public class RevFieldWildcardQuery {
             }
         };
 
-        tokenizer.nest(f -> simpleLexer);
+        tokenizer.getConfCallbacks().nest(f -> simpleLexer);
 
         simpleLexer.addMatcher(new KeywordMatcher(OPERATOR_WILD_QUESTION, true));
         simpleLexer.addMatcher(new KeywordMatcher(OPERATOR_WILD_QUESTION_ESC, true));
@@ -112,12 +124,12 @@ public class RevFieldWildcardQuery {
         simpleLexer.addMatcher(new KeywordMatcher(OPERATOR_AND, false));
         simpleLexer.addMatcher(new KeywordMatcher(OPERATOR_NOT, false));
         simpleLexer.addMatcher(new KeywordMatcher(OPERATOR_OR, false));
-        LinkedList<List<MatchedTokens>> splitMatch = new LinkedList<>();
+        LinkedList<List<PosMatched<ConfToken,String>>> splitMatch = new LinkedList<>();
 
         for (String t : terms) {
-            simpleLexer.reset(t);
-            DefaultMatchedTokenProducer defaultMatchedTokenProducer = new DefaultMatchedTokenProducer(simpleLexer, asList);
-            List<MatchedTokens> produceItems = defaultMatchedTokenProducer.produceItems();
+            tokenizer.reset(t);
+            tokenizer.toSimplifiedIterator().iterator();
+            List<PosMatched<ConfToken,String>> produceItems = new SimpleStringPosMatcherCombinator<>(tokenizer.toSimplifiedIterator().iterator(),asList).produceItems();
             splitMatch.add(produceItems);
 
         }
@@ -126,10 +138,10 @@ public class RevFieldWildcardQuery {
             return new MatchNoDocsQuery();
         }
         if (splitMatch.size() == 1 && allowAll) {
-            List<MatchedTokens> ma = splitMatch.getFirst();
+            List<PosMatched<ConfToken,String>> ma = splitMatch.getFirst();
             if (ma.size() == 1) {
-                MatchedTokens tokens = ma.get(0);
-                if (tokens.contains(wildCard)) {
+                PosMatched<ConfToken,String> tokens = ma.get(0);
+                if (tokens.contains(wildCard.getName())) {
                     return new BooleanQuery.Builder()
                             .add(new DocValuesFieldExistsQuery(fieldName), BooleanClause.Occur.SHOULD)
                             .add(new DocValuesFieldExistsQuery(revFieldName), BooleanClause.Occur.SHOULD)
@@ -141,7 +153,7 @@ public class RevFieldWildcardQuery {
         BooleanQuery.Builder builder = new BooleanQuery.Builder();
         BooleanClause.Occur nextOccur = defaultOccur;
         boolean occurChanged = false;
-        for (List<MatchedTokens> split : splitMatch) {
+        for (List<PosMatched<ConfToken,String>> split : splitMatch) {
             boolean needreverse = false;
             boolean needregular = false;
             boolean simpleTerm = false;
@@ -153,40 +165,40 @@ public class RevFieldWildcardQuery {
 
             LinkedList<ConfToken> q = new LinkedList<>();
             LinkedList<ConfToken> rev = new LinkedList<>();
-            for (MatchedTokens ma : split) {
+            for (PosMatched<ConfToken,String> ma : split) {
 
-                if (ma.contains(wildCard_word_wildcard)) { // main case
+                if (ma.contains(wildCard_word_wildcard.getName())) { // main case
 
-                    q.addAll(ma.getTokens(0, 1, 2));
-                    rev.addAll(0, ma.getTokens(2, 1, 0));
+                    q.addAll(ma.getItems(0, 1, 2));
+                    rev.addAll(0, ma.getItems(2, 1, 0));
                     needreverse = true;
                     needregular = true;
-                } else if (ma.contains(word_wildCard)) {
-                    q.addAll(ma.getTokens(0, 1));
-                    rev.addAll(0, ma.getTokens(1, 0));
+                } else if (ma.contains(word_wildCard.getName())) {
+                    q.addAll(ma.getItems(0, 1));
+                    rev.addAll(0, ma.getItems(1, 0));
                     needregular = true;
-                } else if (ma.contains(wildCard_word)) {
-                    q.addAll(ma.getTokens(0, 1));
-                    rev.addAll(0, ma.getTokens(1, 0));
+                } else if (ma.contains(wildCard_word.getName())) {
+                    q.addAll(ma.getItems(0, 1));
+                    rev.addAll(0, ma.getItems(1, 0));
                     needreverse = true;
-                } else if (ma.contains(concatable)) {
-                    q.addAll(ma.getTokens(0));
-                    rev.addFirst(ma.getToken(0));
+                } else if (ma.contains(concatable.getName())) {
+                    q.addAll(ma.getItems(0));
+                    rev.addFirst(ma.getItem(0));
                     simpleTerm = true;
-                } else if (ma.contains(gate)) {
+                } else if (ma.contains(gate.getName())) {
 
                     occurChanged = true;
-                    if (ma.contains(and)) {
+                    if (ma.contains(and.getName())) {
                         nextOccur = BooleanClause.Occur.MUST;
-                    } else if (ma.contains(or)) {
+                    } else if (ma.contains(or.getName())) {
                         nextOccur = BooleanClause.Occur.SHOULD;
-                    } else if (ma.contains(not)) {
+                    } else if (ma.contains(not.getName())) {
                         nextOccur = BooleanClause.Occur.MUST_NOT;
 
                     }
-                } else if (ma.contains(wildCard)) {
-                    q.addAll(ma.getTokens(0));
-                    rev.addFirst(ma.getToken(0));
+                } else if (ma.contains(wildCard.getName())) {
+                    q.addAll(ma.getItems(0));
+                    rev.addFirst(ma.getItem(0));
                 } else {
                     //irrelevant
                 }
@@ -195,7 +207,7 @@ public class RevFieldWildcardQuery {
             if (needreverse || needregular || simpleTerm) {
                 List<Query> querys = new ArrayList<>();
                 if (needregular) {
-                    while (!q.isEmpty() && wildCard.test(q.getFirst())) {
+                    while (!q.isEmpty() && wildCard.matches(0,q.getFirst())) {
                         // need to remove first wild card
                         q.removeFirst();
                     }
@@ -204,7 +216,7 @@ public class RevFieldWildcardQuery {
 
                 }
                 if (needreverse) {
-                    while (!rev.isEmpty() && wildCard.test(rev.getFirst())) {
+                    while (!rev.isEmpty() && wildCard.matches(0,rev.getFirst())) {
                         // need to remove first wild card
                         rev.removeFirst();
                     }
