@@ -147,6 +147,8 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
         }
         return sum;
     }
+    
+    public void idSanityCheck(Property prop,StringBuilder sb) throws IOException;
 
     /**
      * Delete every Lucene file associated with this folder

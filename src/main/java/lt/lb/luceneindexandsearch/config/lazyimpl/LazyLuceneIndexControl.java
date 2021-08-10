@@ -23,6 +23,7 @@ import lt.lb.luceneindexandsearch.config.LuceneServicesResolver;
 import lt.lb.uncheckedutils.Checked;
 import lt.lb.uncheckedutils.CheckedExecutor;
 import lt.lb.uncheckedutils.PassableException;
+import lt.lb.uncheckedutils.SafeOpt;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -181,7 +182,7 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
             LuceneServicesResolver<Property> resolver = getLuceneServicesResolver();
             for (List<ID> batch : partition) {
 
-                try ( IndexWriter indexWriter = resolver.getWriter(folderName).getIndexWriter()) {
+                try (IndexWriter indexWriter = resolver.getWriter(folderName).getIndexWriter()) {
                     Query query = idsToQuery(batch, folderName);
                     indexWriter.deleteDocuments(query);
                     indexWriter.commit();
@@ -210,7 +211,7 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
             return;
         }
 
-        writeIdsToIndex(false, folderName, idsToAdd);
+        writeIdsToIndex(false, folderName, idsToAdd);// TODO, multiple IDS can be present??? what
     }
 
     public static class IdMap<ID> {
@@ -294,15 +295,17 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
                     if (maps.isEmpty()) {
                         return null;
                     }
-                    try ( IndexWriter indexWriter = resolver.getWriter(folderName).getIndexWriter()) {
-                        for (IdMap<ID> idMap : maps) {
-                            Document doc = fieldsConfig.createDocument(idMap.map);
-                            if (update) {
+                    try (IndexWriter indexWriter = resolver.getWriter(folderName).getIndexWriter()) {
+                        if (update) {
+                            for (IdMap<ID> idMap : maps) {
+                                Document doc = fieldsConfig.createDocument(idMap.map);
                                 Term maidIdTerm = search.maidIdTerm(mainIdToString(idMap.id));
                                 indexWriter.updateDocument(maidIdTerm, doc);
-                            } else {
-                                indexWriter.addDocument(doc);
                             }
+                        } else {
+                            List<Document> docs = maps.stream().map(m -> fieldsConfig.createDocument(m.map)).collect(Collectors.toList());
+                            indexWriter.addDocuments(docs);
+
                         }
                         indexWriter.commit();
                     }
