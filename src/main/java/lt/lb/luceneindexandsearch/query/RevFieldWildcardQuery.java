@@ -15,10 +15,6 @@ import lt.lb.configurablelexer.anymatch.impl.Matchers;
 import lt.lb.configurablelexer.lexer.SimpleLexer;
 import lt.lb.configurablelexer.lexer.matchers.KeywordMatcher;
 import lt.lb.configurablelexer.lexer.matchers.StringMatcher;
-import lt.lb.configurablelexer.parse.DefaultMatchedTokenProducer;
-import lt.lb.configurablelexer.parse.MatchedTokens;
-import lt.lb.configurablelexer.parse.TokenMatcher;
-import lt.lb.configurablelexer.parse.TokenMatchers;
 import lt.lb.configurablelexer.token.ConfToken;
 import lt.lb.configurablelexer.token.DefaultConfTokenizer;
 import lt.lb.configurablelexer.token.base.KeywordToken;
@@ -102,7 +98,7 @@ public class RevFieldWildcardQuery {
             @Override
             public ConfToken makeLexeme(int from, int to, StringMatcher.MatcherMatch matcher, String unbrokenString) throws Exception {
                 String val = unbrokenString.substring(from, to);
-                if (matcher.match instanceof KeywordMatcher) {
+                if (matcher.matcher instanceof KeywordMatcher) {
                     return new KeywordToken(val);
                 }
                 return new StringToken(val);
