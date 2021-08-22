@@ -3,16 +3,19 @@ package lt.lb.luceneindexandsearch.query;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lt.lb.commons.DLog;
-import lt.lb.configurablelexer.anymatch.PosMatch;
 import lt.lb.configurablelexer.anymatch.PosMatched;
-import lt.lb.configurablelexer.anymatch.SimpleStringPosMatcherCombinator;
-import lt.lb.configurablelexer.anymatch.impl.Matchers;
+import lt.lb.configurablelexer.anymatch.impl.SimpleStringPosMatcherCombinator;
+import lt.lb.configurablelexer.anymatch.impl.ConfMatchers;
+import lt.lb.configurablelexer.anymatch.impl.ConfMatchers.PM;
+import lt.lb.configurablelexer.anymatch.impl.SimplePosMatcherCombinator;
 import lt.lb.configurablelexer.lexer.SimpleLexer;
+import lt.lb.configurablelexer.lexer.SimpleLexerOptimized;
 import lt.lb.configurablelexer.lexer.matchers.KeywordMatcher;
 import lt.lb.configurablelexer.lexer.matchers.StringMatcher;
 import lt.lb.configurablelexer.token.ConfToken;
@@ -42,59 +45,61 @@ import org.apache.lucene.search.WildcardQuery;
  */
 public class RevFieldWildcardQuery {
 
+    public static final int TERMS_HARD_LIMIT = 128;
+
     public static final String OPERATOR_AND = "and";
     public static final String OPERATOR_OR = "or";
     public static final String OPERATOR_NOT = "not";
-    
 
     public static final String OPERATOR_WILD_QUESTION = "?";
     public static final String OPERATOR_WILD_STAR = "*";
     public static final String OPERATOR_WILD_QUESTION_ESC = "\\?";
     public static final String OPERATOR_WILD_STAR_ESC = "\\*";
 
-    public static final Matchers<ConfToken,String> M = new Matchers<ConfToken,String>().setDefaultName("no name");
-    
-    public static final PosMatch<ConfToken,String> and = exact(OPERATOR_AND);
-    public static final PosMatch<ConfToken,String> or = exact(OPERATOR_OR);
-    public static final PosMatch<ConfToken,String> not = exact(OPERATOR_NOT);
+    public static final ConfMatchers M = new ConfMatchers();
 
-    
-    public static final PosMatch<ConfToken,String> wildStar = exact(OPERATOR_WILD_STAR);
-    public static final PosMatch<ConfToken,String> wildQuestion = exact(OPERATOR_WILD_QUESTION);
-    public static final PosMatch<ConfToken,String> wildStarEsc = exact(OPERATOR_WILD_STAR_ESC);
-    public static final PosMatch<ConfToken,String> wildQuestionEsc = exact(OPERATOR_WILD_QUESTION_ESC);
-    public static final PosMatch<ConfToken,String> literal = M.makeNew("literal").ofType(LiteralToken.class);
+    public static final PM and = exact(OPERATOR_AND);
+    public static final PM or = exact(OPERATOR_OR);
+    public static final PM not = exact(OPERATOR_NOT);
 
-    public static final PosMatch<ConfToken,String> concatable = M.makeNew("concatable").or(literal, wildStarEsc, wildQuestionEsc);
-    public static final PosMatch<ConfToken,String> wildCard = M.makeNew("wild_card").or(wildStar, wildQuestion);
-    public static final PosMatch<ConfToken,String> wildCard_word = M.makeNew("wildCard_word").concat(wildCard, concatable);
-    public static final PosMatch<ConfToken,String> word_wildCard = M.makeNew("word_wildCard").concat(concatable, wildCard);
-    public static final PosMatch<ConfToken,String> wildCard_word_wildcard = M.makeNew("wildCard_word_wildcard").concat(wildCard, concatable, wildCard);
-    public static final PosMatch<ConfToken,String> gate = M.makeNew("gate").or(and, or, not);
+    public static final PM wildStar = exact(OPERATOR_WILD_STAR);
+    public static final PM wildQuestion = exact(OPERATOR_WILD_QUESTION);
+    public static final PM wildStarEsc = exact(OPERATOR_WILD_STAR_ESC);
+    public static final PM wildQuestionEsc = exact(OPERATOR_WILD_QUESTION_ESC);
+    public static final PM literal = M.makeNew("literal").ofType(LiteralToken.class);
 
-    static final List<PosMatch<ConfToken,String>> asList = Arrays.asList(concatable,
-            wildCard_word_wildcard, word_wildCard, wildCard_word, wildCard,
-            wildQuestion, wildStar,
-            gate, and, or, not
-    );
-    
-    private static PosMatch<ConfToken,String> exact(String str){
-        return M.makeNew(str).isWhen(c->StringUtils.equals(c.getValue(), str));
+    public static final PM concatable = M.makeNew("concatable").or(literal, wildStarEsc, wildQuestionEsc);
+    public static final PM wildCard = M.makeNew("wild_card").or(wildStar, wildQuestion);
+    public static final PM wildCard_word = M.makeNew("wildCard_word").concat(wildCard, concatable);
+    public static final PM word_wildCard = M.makeNew("word_wildCard").concat(concatable, wildCard);
+    public static final PM wildCard_word_wildcard = M.makeNew("wildCard_word_wildcard").concat(wildCard, concatable, wildCard);
+    public static final PM gate = M.makeNew("gate").or(and, or, not);
+
+    static final List<PM> asList = makeList();
+
+    static List<PM> makeList() {
+        List<PM> list = Arrays.asList(concatable,
+                wildCard_word_wildcard, word_wildCard, wildCard_word, wildCard,
+                wildQuestion, wildStar,
+                gate, and, or, not
+        );
+        list.sort(SimplePosMatcherCombinator.cmpMatchers);
+        return list;
+    }
+
+    private static PM exact(String str) {
+        return M.makeNew(str).isWhen(c -> StringUtils.equals(c.getValue(), str));
     }
 
     static final Pattern REPLACE_REPEATING_WILDCARD = Pattern.compile("(\\*+\\?+)|(\\?+\\*+)|(\\*)+");
 
-    public static Query buildQuery(final String term, Analyzer analyzer, String fieldName, String revFieldName) throws Exception {
-        return buildQuery(term, analyzer, fieldName, revFieldName, false, BooleanClause.Occur.MUST); // default AND
+    public static Query buildQuery(final String query, Analyzer analyzer, String fieldName, String revFieldName) throws Exception {
+        return buildQuery(query, analyzer, fieldName, revFieldName, false, BooleanClause.Occur.MUST); // default AND
     }
 
-    public static Query buildQuery(final String term, Analyzer analyzer, String fieldName, String revFieldName, boolean allowAll, BooleanClause.Occur defaultOccur) throws Exception {
-
-        String replaced = RegExUtils.replaceAll(term, REPLACE_REPEATING_WILDCARD, "*");
-
-        List<String> terms = tokenizeTerms(replaced, analyzer);
+    public static DefaultConfTokenizer<ConfToken> buildTokenizer() {
         DefaultConfTokenizer tokenizer = new DefaultConfTokenizer();
-        SimpleLexer simpleLexer = new SimpleLexer(tokenizer) {
+        SimpleLexer simpleLexer = new SimpleLexerOptimized(tokenizer) {
             @Override
             public ConfToken makeLexeme(int from, int to, StringMatcher.MatcherMatch matcher, String unbrokenString) throws Exception {
                 String val = unbrokenString.substring(from, to);
@@ -120,24 +125,30 @@ public class RevFieldWildcardQuery {
         simpleLexer.addMatcher(new KeywordMatcher(OPERATOR_AND, false));
         simpleLexer.addMatcher(new KeywordMatcher(OPERATOR_NOT, false));
         simpleLexer.addMatcher(new KeywordMatcher(OPERATOR_OR, false));
-        LinkedList<List<PosMatched<ConfToken,String>>> splitMatch = new LinkedList<>();
+
+        return tokenizer;
+    }
+
+    public static Query buildQuery(final String search, Analyzer analyzer, String fieldName, String revFieldName, boolean allowAll, BooleanClause.Occur defaultOccur) throws Exception {
+
+        String replaced = RegExUtils.replaceAll(search, REPLACE_REPEATING_WILDCARD, "*");
+        List<String> terms = tokenizeTerms(replaced, analyzer);
+        LinkedList<List<PosMatched<ConfToken, String>>> splitMatch = new LinkedList<>();
+        DefaultConfTokenizer<ConfToken> tokenizer = buildTokenizer();
 
         for (String t : terms) {
             tokenizer.reset(t);
-            tokenizer.toSimplifiedIterator().iterator();
-            List<PosMatched<ConfToken,String>> produceItems = new SimpleStringPosMatcherCombinator<>(tokenizer.toSimplifiedIterator().iterator(),asList).produceItems();
-            splitMatch.add(produceItems);
-
+            splitMatch.add(SimplePosMatcherCombinator.tryMatchAll(false, tokenizer.toSimplifiedIterator().iterator(), asList));
         }
 
         if (splitMatch.isEmpty()) {
             return new MatchNoDocsQuery();
         }
         if (splitMatch.size() == 1 && allowAll) {
-            List<PosMatched<ConfToken,String>> ma = splitMatch.getFirst();
+            List<PosMatched<ConfToken, String>> ma = splitMatch.getFirst();
             if (ma.size() == 1) {
-                PosMatched<ConfToken,String> tokens = ma.get(0);
-                if (tokens.contains(wildCard.getName())) {
+                PosMatched<ConfToken, String> tokens = ma.get(0);
+                if (tokens.containsMatcher(wildCard.getName())) {
                     return new BooleanQuery.Builder()
                             .add(new DocValuesFieldExistsQuery(fieldName), BooleanClause.Occur.SHOULD)
                             .add(new DocValuesFieldExistsQuery(revFieldName), BooleanClause.Occur.SHOULD)
@@ -149,7 +160,7 @@ public class RevFieldWildcardQuery {
         BooleanQuery.Builder builder = new BooleanQuery.Builder();
         BooleanClause.Occur nextOccur = defaultOccur;
         boolean occurChanged = false;
-        for (List<PosMatched<ConfToken,String>> split : splitMatch) {
+        for (List<PosMatched<ConfToken, String>> split : splitMatch) {
             boolean needreverse = false;
             boolean needregular = false;
             boolean simpleTerm = false;
@@ -161,38 +172,38 @@ public class RevFieldWildcardQuery {
 
             LinkedList<ConfToken> q = new LinkedList<>();
             LinkedList<ConfToken> rev = new LinkedList<>();
-            for (PosMatched<ConfToken,String> ma : split) {
+            for (PosMatched<ConfToken, String> ma : split) {
 
-                if (ma.contains(wildCard_word_wildcard.getName())) { // main case
+                if (ma.containsMatcher(wildCard_word_wildcard.getName())) { // main case
 
                     q.addAll(ma.getItems(0, 1, 2));
                     rev.addAll(0, ma.getItems(2, 1, 0));
                     needreverse = true;
                     needregular = true;
-                } else if (ma.contains(word_wildCard.getName())) {
+                } else if (ma.containsMatcher(word_wildCard.getName())) {
                     q.addAll(ma.getItems(0, 1));
                     rev.addAll(0, ma.getItems(1, 0));
                     needregular = true;
-                } else if (ma.contains(wildCard_word.getName())) {
+                } else if (ma.containsMatcher(wildCard_word.getName())) {
                     q.addAll(ma.getItems(0, 1));
                     rev.addAll(0, ma.getItems(1, 0));
                     needreverse = true;
-                } else if (ma.contains(concatable.getName())) {
+                } else if (ma.containsMatcher(concatable.getName())) {
                     q.addAll(ma.getItems(0));
                     rev.addFirst(ma.getItem(0));
                     simpleTerm = true;
-                } else if (ma.contains(gate.getName())) {
+                } else if (ma.containsMatcher(gate.getName())) {
 
                     occurChanged = true;
-                    if (ma.contains(and.getName())) {
+                    if (ma.containsMatcher(and.getName())) {
                         nextOccur = BooleanClause.Occur.MUST;
-                    } else if (ma.contains(or.getName())) {
+                    } else if (ma.containsMatcher(or.getName())) {
                         nextOccur = BooleanClause.Occur.SHOULD;
-                    } else if (ma.contains(not.getName())) {
+                    } else if (ma.containsMatcher(not.getName())) {
                         nextOccur = BooleanClause.Occur.MUST_NOT;
 
                     }
-                } else if (ma.contains(wildCard.getName())) {
+                } else if (ma.containsMatcher(wildCard.getName())) {
                     q.addAll(ma.getItems(0));
                     rev.addFirst(ma.getItem(0));
                 } else {
@@ -200,43 +211,39 @@ public class RevFieldWildcardQuery {
                 }
             }
 
-            if (needreverse || needregular || simpleTerm) {
-                List<Query> querys = new ArrayList<>();
-                if (needregular) {
-                    while (!q.isEmpty() && wildCard.matches(0,q.getFirst())) {
-                        // need to remove first wild card
-                        q.removeFirst();
-                    }
-                    String query = q.stream().map(m -> m.getValue()).collect(Collectors.joining());
-                    querys.add(new WildcardQuery(new Term(fieldName, query)));
+            List<Query> querys = new ArrayList<>();
+            if (needregular) {
+                while (!q.isEmpty() && wildCard.matches(0, q.getFirst())) {
+                    // need to remove first wild card
+                    q.removeFirst();
+                }
+                String query = q.stream().map(m -> m.getValue()).collect(Collectors.joining());
+                querys.add(new WildcardQuery(new Term(fieldName, query)));
 
+            }
+            if (needreverse) {
+                while (!rev.isEmpty() && wildCard.matches(0, rev.getFirst())) {
+                    // need to remove first wild card
+                    rev.removeFirst();
                 }
-                if (needreverse) {
-                    while (!rev.isEmpty() && wildCard.matches(0,rev.getFirst())) {
-                        // need to remove first wild card
-                        rev.removeFirst();
-                    }
-                    String revQeury = rev.stream().map(m -> m.getValue()).map(StringUtils::reverse).collect(Collectors.joining());
-                    querys.add(new WildcardQuery(new Term(revFieldName, revQeury)));
+                String revQeury = rev.stream().map(m -> m.getValue()).map(StringUtils::reverse).collect(Collectors.joining());
+                querys.add(new WildcardQuery(new Term(revFieldName, revQeury)));
 
-                }
-                if (simpleTerm && !(needregular || needreverse)) {
-                    String query = q.stream().map(m -> m.getValue()).collect(Collectors.joining());
-                    querys.add(new TermQuery(new Term(fieldName, query)));
-                }
-                if (querys.size() > 0) {
-                    if (querys.size() > 1) {
-                        BooleanQuery.Builder inner = new BooleanQuery.Builder();
-                        for (Query query : querys) {
-                            inner.add(query, BooleanClause.Occur.SHOULD); // duplicating querys
-                        }
-                        builder.add(inner.build(), nextOccur);
-                    } else {
-                        builder.add(querys.get(0), nextOccur);
+            }
+            if (simpleTerm && !(needregular || needreverse)) {
+                String query = q.stream().map(m -> m.getValue()).collect(Collectors.joining());
+                querys.add(new TermQuery(new Term(fieldName, query)));
+            }
+            if (querys.size() > 0) {
+                if (querys.size() > 1) {
+                    BooleanQuery.Builder inner = new BooleanQuery.Builder();
+                    for (Query query : querys) {
+                        inner.add(query, BooleanClause.Occur.SHOULD); // duplicating querys
                     }
+                    builder.add(inner.build(), nextOccur);
+                } else {
+                    builder.add(querys.get(0), nextOccur);
                 }
-            } else {
-                // no query
             }
 
         }
@@ -248,7 +255,9 @@ public class RevFieldWildcardQuery {
         try (TokenStream tokenStream = analyzer.tokenStream("anyField", tokenize)) {
             tokenStream.reset();
 
-            while (true) {
+            int count = 0;
+            while (count < TERMS_HARD_LIMIT) {
+
                 boolean hasToken = tokenStream.incrementToken();
                 if (!hasToken) {
                     break;
@@ -260,6 +269,7 @@ public class RevFieldWildcardQuery {
                 CharTermAttribute attribute = tokenStream.getAttribute(CharTermAttribute.class);
                 String term = new String(attribute.buffer(), 0, attribute.length());
                 terms.add(term);
+                count++;
 
             }
         }
@@ -272,11 +282,17 @@ public class RevFieldWildcardQuery {
     }
 
     public static void main(String[] args) throws Exception {
-        DLog.main().async = false;
+        DLog.main().async = true;
         SimpleAnalyzer defaultAnalyzer = Premade.defaultSearchAnalyzer();
 
         String term = "*hell?o?? *help?me?jesus? " + " NOT " + " **something else?* regular";
-//        String term = "*help?me?jesus? ";
+//        String term = "*13225456 ";
+
+//        String term = " ";
+        
+//        for (int i = 0; i < 10; i++) {
+//            term = term + " " + term;
+//        }
 
         TokenStream tokenStream = defaultAnalyzer.tokenStream(OPERATOR_AND, term);
         tokenStream.reset();
@@ -285,14 +301,15 @@ public class RevFieldWildcardQuery {
             boolean inc = tokenStream.incrementToken();
 
             CharTermAttribute attribute = tokenStream.getAttribute(CharTermAttribute.class);
-            DLog.print(attribute);
+            DLog.print(attribute.toString());
             if (!inc) {
                 break;
             }
         }
         tokenStream.close();
+        DLog.print("Build query");
         Query query = buildQuery(term, defaultAnalyzer, "field", "revField");
-
+        DLog.print("After build");
         DLog.print(query);
         DLog.close();
 

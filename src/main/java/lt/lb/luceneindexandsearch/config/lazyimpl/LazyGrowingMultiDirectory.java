@@ -11,7 +11,7 @@ import lt.lb.lucenejpa.SyncDirectory;
 
 /**
  *
- * @author Lemmin
+ * @author laim0nas100
  */
 public class LazyGrowingMultiDirectory<P> implements GrowingMultiDirectory<P> {
 

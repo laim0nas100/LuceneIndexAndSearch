@@ -7,10 +7,11 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.atomic.AtomicBoolean;
+import lt.lb.commons.threads.sync.AtomicMap;
+import lt.lb.commons.threads.sync.WaitTime;
 import lt.lb.luceneindexandsearch.config.LuceneIndexControl;
 import lt.lb.luceneindexandsearch.config.LuceneIndexControlAggregator;
-import lt.lb.uncheckedutils.Checked;
+import lt.lb.uncheckedutils.func.UncheckedRunnable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -18,18 +19,22 @@ import org.apache.logging.log4j.Logger;
  *
  * @author laim0nas100
  */
-public abstract class LazyLuceneIndexControlAggregator implements LuceneIndexControlAggregator {
+public class LazyLuceneIndexControlAggregator implements LuceneIndexControlAggregator {
 
     public static Logger logger = LogManager.getLogger(LazyLuceneIndexControlAggregator.class);
 
     public ScheduledExecutorService scheduler;
     public ExecutorService executor;
     public ScheduledFuture scheduled;
+    public AtomicMap<String, Occupy> atomicMap;
+    public WaitTime period;
 
-    public LazyLuceneIndexControlAggregator(ScheduledExecutorService scheduler, ExecutorService executor, Map<String, LuceneIndexControl> map) {
+    public LazyLuceneIndexControlAggregator(WaitTime waitTime, ScheduledExecutorService scheduler, ExecutorService executor, Map<String, LuceneIndexControl> map) {
+        this.period = Objects.requireNonNull(waitTime);
         this.scheduler = Objects.requireNonNull(scheduler);
         this.executor = Objects.requireNonNull(executor);
         this.map = Objects.requireNonNull(map);
+        this.atomicMap = new AtomicMap<>();
     }
 
     protected Map<String, LuceneIndexControl> map;
@@ -40,7 +45,8 @@ public abstract class LazyLuceneIndexControlAggregator implements LuceneIndexCon
         for (Map.Entry<String, LuceneIndexControl> entry : getLuceneIndexControlMap().entrySet()) {
             LuceneIndexControl value = entry.getValue();
             String key = entry.getKey();
-            scheduledFutures.add(scheduleRunnable(safeRunnableMaintenance(key, value), key, value));
+            ScheduledFuture schedule = this.schedulePeriodically(true, 0, period.time, period.unit, key, value::periodicMaintenance);
+            scheduledFutures.add(schedule);
         }
     }
 
@@ -52,25 +58,35 @@ public abstract class LazyLuceneIndexControlAggregator implements LuceneIndexCon
         scheduledFutures.clear();
     }
 
-    protected abstract ScheduledFuture scheduleRunnable(Runnable run, String key, LuceneIndexControl control);
+    @Override
+    public ScheduledExecutorService getScheduler() {
+        return scheduler;
+    }
 
-    protected Runnable safeRunnableMaintenance(String key, LuceneIndexControl control) {
-        AtomicBoolean running = new AtomicBoolean(false);
+    @Override
+    public ExecutorService getExecutor() {
+        return executor;
+    }
 
-        return () -> {
-            logger.debug(key + " Start maintenance");
-            if (running.compareAndSet(false, true)) {
-                Optional<Throwable> checkedRun = Checked.checkedRun(control::periodicMaintenance);
-                running.set(false);
-                checkedRun.ifPresent(error -> {
-                    logger.error("Error in periodic maintenance", error);
-                });
-                logger.debug(key + " End maintenance");
-            } else {
-                logger.debug(key + " Allready running, wait for next cycle");
-            }
+    @Override
+    public AtomicMap<String, Occupy> getAtomicMap() {
+        return atomicMap;
+    }
 
-        };
+    @Override
+    public UncheckedRunnable beforeRun(String name, UncheckedRunnable run) {
+        logger.debug(name + " Start");
+        return run;
+    }
+
+    @Override
+    public void afterRun(String name, Optional<Throwable> error) {
+        logger.debug(name + " End");
+    }
+
+    @Override
+    public void failedToSubmit(FailedSubmitCase failedCase, String name, UncheckedRunnable run) {
+        logger.debug(name + " Allready running, failed to submit");
     }
 
     @Override
