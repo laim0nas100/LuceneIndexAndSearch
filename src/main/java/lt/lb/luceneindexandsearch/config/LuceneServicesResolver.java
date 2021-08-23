@@ -27,6 +27,8 @@ public interface LuceneServicesResolver<Property> {
     public GrowingMultiIndexingConfig<Property> getMultiIndexingConfig();
 
     public IndexingMultiReaderConfig getMultiReaderConfig();
+    
+    public LuceneTaskExecutor getLuceneTaskExecutor();
 
     public default IndexingReaderConfig getReader(Property prop) throws IOException {
         return getMultiIndexingConfig().resolve(prop);

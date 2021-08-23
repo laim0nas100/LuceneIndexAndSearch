@@ -3,14 +3,15 @@ package lt.lb.luceneindexandsearch.config;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import lt.lb.commons.threads.service.ScheduledTaskExecutor;
 
 /**
  *
  * @author laim0nas100
  */
-public interface LuceneIndexControlAggregator extends ScheduledTaskExecutor<String> {
-
+public interface LuceneIndexControlAggregator  {
+    
+    public LuceneTaskExecutor getExecutor();
+    
     public void setupMaintenance();
     
     public void cancelMaintenance();

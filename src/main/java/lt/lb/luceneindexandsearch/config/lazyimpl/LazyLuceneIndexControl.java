@@ -23,7 +23,6 @@ import lt.lb.luceneindexandsearch.config.LuceneServicesResolver;
 import lt.lb.uncheckedutils.Checked;
 import lt.lb.uncheckedutils.CheckedExecutor;
 import lt.lb.uncheckedutils.PassableException;
-import lt.lb.uncheckedutils.SafeOpt;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
