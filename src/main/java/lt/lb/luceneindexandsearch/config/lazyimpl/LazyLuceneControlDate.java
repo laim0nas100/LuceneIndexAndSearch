@@ -90,7 +90,7 @@ public abstract class LazyLuceneControlDate<ID> extends LazyLuceneIndexControl<S
 
         if (dates.isEmpty()) {
             resolveDirectory(startingFolder);
-            dates.add(SafeOpt.of(startingFolder).flatMap(this::parseDate).get());
+            dates.add(SafeOpt.of(startingFolder).flatMap(this::parseDate).throwIfErrorAsNested().get());
         }
         Date now = new Date();
         int times = 1000000;
