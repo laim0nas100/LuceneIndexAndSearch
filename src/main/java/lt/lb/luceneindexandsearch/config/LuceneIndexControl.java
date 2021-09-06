@@ -51,7 +51,7 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Status checked;
-        try ( PrintStream printStream = new PrintStream(baos, true);  CheckIndex check = new CheckIndex(resolveDirectory(prop))) {
+        try (PrintStream printStream = new PrintStream(baos, true); CheckIndex check = new CheckIndex(resolveDirectory(prop))) {
             check.setInfoStream(printStream, verbose);
 
             checked = check.checkIndex();
@@ -65,7 +65,7 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Status checked;
-        try ( PrintStream printStream = new PrintStream(baos, true);  CheckIndex check = new CheckIndex(resolveDirectory(prop))) {
+        try (PrintStream printStream = new PrintStream(baos, true); CheckIndex check = new CheckIndex(resolveDirectory(prop))) {
             check.setChecksumsOnly(true);
             check.setInfoStream(printStream, verbose);
 
@@ -78,7 +78,7 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
 
     public default void fixIndex(Property prop, StringBuilder sb, boolean verbose) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try ( PrintStream printStream = new PrintStream(baos, true);  CheckIndex check = new CheckIndex(resolveDirectory(prop))) {
+        try (PrintStream printStream = new PrintStream(baos, true); CheckIndex check = new CheckIndex(resolveDirectory(prop))) {
 
             check.setInfoStream(printStream, verbose);
             check.exorciseIndex(check.checkIndex());
@@ -147,8 +147,8 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
         }
         return sum;
     }
-    
-    public void idSanityCheck(Property prop,StringBuilder sb) throws IOException;
+
+    public void idSanityCheck(Property prop, StringBuilder sb) throws IOException;
 
     /**
      * Delete every Lucene file associated with this folder
@@ -251,7 +251,7 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
         }
         dir.syncLocal();
         if (dir.isEmpty()) {
-            try ( IndexWriter indexWriter = indexing.getIndexWriter()) {
+            try (IndexWriter indexWriter = indexing.getIndexWriter()) {
                 indexWriter.commit();
             }
         }
