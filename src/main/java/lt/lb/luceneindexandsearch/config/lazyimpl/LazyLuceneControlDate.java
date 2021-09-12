@@ -8,6 +8,7 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import lt.lb.uncheckedutils.PassableException;
 import lt.lb.uncheckedutils.SafeOpt;
 
 /**
@@ -74,6 +75,43 @@ public abstract class LazyLuceneControlDate<ID> extends LazyLuceneIndexControl<S
         return false;
     }
 
+    protected LinkedList<Date> getDates() {
+        return getNestedKeys().stream()
+                .map(m -> SafeOpt.of(m).flatMap(this::parseDate))
+                .filter(m -> m.isPresent())
+                .map(m -> m.get()).sorted()
+                .collect(Collectors.toCollection(LinkedList::new));
+    }
+
+    protected SafeOpt<String> folderByDate(Date date) {
+        if (date == null) {
+            return SafeOpt.empty();
+        }
+        LinkedList<Date> dates = getDates();
+        if (dates.isEmpty()) {
+            return SafeOpt.empty();
+        }
+        Date lastAfter = null;
+        for (Date d : dates) {
+            if (d.after(date)) {
+                if (lastAfter == null) {
+                    return SafeOpt.error(new PassableException("passed date was out of range:" + date + " min:" + d));
+                }
+                return SafeOpt.of(lastAfter).flatMap(this::formatDate);
+            }
+            lastAfter = d;
+        }
+
+        // got all dates, maybe at the last one?
+        Date incremented = incrementDate(lastAfter);
+
+        if (incremented.after(date)) { // out of range
+            return SafeOpt.error(new PassableException("passed date was out of range:" + date + " max:" + incremented));
+        }
+
+        return SafeOpt.of(lastAfter).flatMap(this::formatDate);
+    }
+
     @Override
     public void initOrExpandNested() throws IOException {
 //this is not neccessary because we initiate all based on date
@@ -81,12 +119,7 @@ public abstract class LazyLuceneControlDate<ID> extends LazyLuceneIndexControl<S
 //            for (String folderName : listDistinctFolders) {
 //                dir.apply(folderName); // init all present directories
 //            }
-
-        LinkedList<Date> dates = getNestedKeys().stream()
-                .map(m -> SafeOpt.of(m).flatMap(this::parseDate))
-                .filter(m -> m.isPresent())
-                .map(m -> m.get()).sorted()
-                .collect(Collectors.toCollection(LinkedList::new));
+        LinkedList<Date> dates = getDates();
 
         if (dates.isEmpty()) {
             resolveDirectory(startingFolder);

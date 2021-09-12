@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import lt.lb.lucenejpa.SyncDirectory;
+import lt.lb.uncheckedutils.SafeOpt;
 import org.apache.lucene.index.CheckIndex;
 import org.apache.lucene.index.CheckIndex.Status;
 import org.apache.lucene.index.IndexWriter;
@@ -86,6 +87,8 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
         }
         sb.append(baos.toString(StandardCharsets.UTF_8.name()));
     }
+
+    public SafeOpt<Property> findCorrectFolder(ID id);
 
     public static interface IdAndChanged<ID, D extends Comparable<D>> {
 
