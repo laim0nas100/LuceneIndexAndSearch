@@ -105,11 +105,12 @@ public abstract class LazyLuceneControlDate<ID> extends LazyLuceneIndexControl<S
         // got all dates, maybe at the last one?
         Date incremented = incrementDate(lastAfter);
 
-        if (incremented.after(date)) { // out of range
-            return SafeOpt.error(new PassableException("passed date was out of range:" + date + " max:" + incremented));
+        if (incremented.after(date)) { // in last range?
+            return SafeOpt.of(lastAfter).flatMap(this::formatDate);
         }
+        return SafeOpt.error(new PassableException("passed date was out of range:" + date + " max:" + incremented));
 
-        return SafeOpt.of(lastAfter).flatMap(this::formatDate);
+        
     }
 
     @Override
