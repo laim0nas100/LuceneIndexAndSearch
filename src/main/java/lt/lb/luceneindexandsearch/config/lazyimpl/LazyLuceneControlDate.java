@@ -46,7 +46,7 @@ public abstract class LazyLuceneControlDate<ID> extends LazyLuceneIndexControl<S
             return SafeOpt.of(cachedFirst.get(folderName));
         }
         return parseDate(folderName)
-                .ifPresent(date -> cachedFirst.put(folderName, date));
+                .peek(date -> cachedFirst.put(folderName, date));
     }
 
     /**
@@ -61,7 +61,7 @@ public abstract class LazyLuceneControlDate<ID> extends LazyLuceneIndexControl<S
         }
         return parseDate(folderName)
                 .map(date -> incrementDate(date))
-                .ifPresent(date -> cachedLast.put(folderName, date));
+                .peek(date -> cachedLast.put(folderName, date));
     }
 
     protected <ID> boolean mapDateEq(ID k, Date date, Map<ID, Date> currentIDs) {
