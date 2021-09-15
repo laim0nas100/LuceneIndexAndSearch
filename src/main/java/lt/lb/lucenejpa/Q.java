@@ -64,7 +64,7 @@ public class Q {
         Objects.requireNonNull(conf);
         return baseKindDecor(conf)
                 .withPred(LuceneFile_.folderName, (c, p) -> c.equal(p, conf.getFolderName())).withDec4(p4 -> {
-            p4.typedQuery().setLockMode(LockModeType.NONE);
+            p4.query().setLockMode(LockModeType.NONE);
         });
     }
 
@@ -74,7 +74,7 @@ public class Q {
         return baseDecor(conf)
                 .withPred(LuceneFile_.fileName, (c, p) -> c.equal(p, fileName))
                 .withDec4(p4 -> {
-                    p4.typedQuery().setLockMode(LockModeType.NONE);
+                    p4.query().setLockMode(LockModeType.NONE);
                 });
     }
 
