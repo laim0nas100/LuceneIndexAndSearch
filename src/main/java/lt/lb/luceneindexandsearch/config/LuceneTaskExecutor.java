@@ -59,7 +59,7 @@ public interface LuceneTaskExecutor extends ScheduledTaskExecutor<String> {
             if (error.isPresent()) {
                 logger.error(name + " End with error", error.get());
             } else {
-                logger.debug("End " + name);
+                logger.debug(name + " End");
             }
         }
 

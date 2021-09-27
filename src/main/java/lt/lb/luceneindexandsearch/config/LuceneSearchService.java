@@ -1,6 +1,5 @@
 package lt.lb.luceneindexandsearch.config;
 
-import com.google.common.collect.Streams;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;

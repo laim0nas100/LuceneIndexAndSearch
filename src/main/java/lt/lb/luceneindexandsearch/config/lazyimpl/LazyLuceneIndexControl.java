@@ -311,8 +311,7 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
                     return null;
                 }).throwIfErrorAsNested();
             });
-        }).throwIfErrorUnwrapping(IOException.class
-        );
+        }).throwIfErrorUnwrapping(IOException.class);
 
     }
 
