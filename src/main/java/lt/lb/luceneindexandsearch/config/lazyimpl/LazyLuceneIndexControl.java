@@ -60,7 +60,6 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
 
     protected int batchWriteCount = 25;
     protected Supplier<Map<Property, LuceneCachedMap<ID, D>>> cachingStrategy;
-    protected boolean clearNestedCacheMapEveryCycle = true;
     protected boolean callGC = true;
 
     public LazyLuceneIndexControl(Supplier<Map<Property, LuceneCachedMap<ID, D>>> cachingStrategy) {
@@ -323,9 +322,6 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
     public void periodicMaintenance() throws IOException {
 
         initOrExpandNested();
-        if (clearNestedCacheMapEveryCycle) {
-            getNestedCachedMap().clear();
-        }
         List<Property> nestedKeys = getNestedKeys();// can be just populated
         List<Throwable> errors = new ArrayList<>();
         for (Property key : nestedKeys) {
@@ -339,9 +335,6 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
 
         }
 
-        if (clearNestedCacheMapEveryCycle) {
-            getNestedCachedMap().clear();
-        }
         if (callGC) {
             System.gc();
         }
@@ -354,7 +347,9 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
     @Override
     public void periodicMaintenance(Property folder) throws IOException {
         getLuceneExecutor().execute(() -> {
+            getNestedCachedMap().remove(folder);
             LuceneIndexControl.super.periodicMaintenance(folder);
+            getNestedCachedMap().remove(folder);
         }).throwIfErrorUnwrapping(IOException.class);
 
     }
