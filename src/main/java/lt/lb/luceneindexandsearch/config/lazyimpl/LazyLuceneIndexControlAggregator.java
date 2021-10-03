@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ScheduledFuture;
+import lt.lb.commons.threads.service.BasicTaskExecutorQueue.BasicRunInfo;
 import lt.lb.commons.threads.sync.WaitTime;
 import lt.lb.luceneindexandsearch.config.LuceneIndexControl;
 import lt.lb.luceneindexandsearch.config.LuceneIndexControlAggregator;
@@ -38,7 +39,8 @@ public class LazyLuceneIndexControlAggregator implements LuceneIndexControlAggre
             LuceneIndexControl value = entry.getValue();
             String key = entry.getKey();
             // control unit should be the one responsible for making things unique
-            ScheduledFuture schedule = executor.schedulePeriodically(false, 0, period.time, period.unit, key, value::periodicMaintenance);
+            BasicRunInfo info = BasicRunInfo.basic(false, "Periodic invocation " + key);
+            ScheduledFuture schedule = executor.schedulePeriodically(info, 0, period.time, period.unit, value::periodicMaintenance);
             scheduledFutures.add(schedule);
         }
     }
@@ -50,7 +52,6 @@ public class LazyLuceneIndexControlAggregator implements LuceneIndexControlAggre
         }
         scheduledFutures.clear();
     }
-
 
     @Override
     public Map<String, LuceneIndexControl> getLuceneIndexControlMap() {

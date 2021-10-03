@@ -2,7 +2,6 @@ package lt.lb.luceneindexandsearch.config.indexing;
 
 import java.io.IOException;
 import java.util.Objects;
-import java.util.function.Supplier;
 import lt.lb.commons.threads.AsyncUtil;
 import lt.lb.luceneindexandsearch.config.DocumentFieldsConfig;
 import lt.lb.lucenejpa.SyncDirectory;

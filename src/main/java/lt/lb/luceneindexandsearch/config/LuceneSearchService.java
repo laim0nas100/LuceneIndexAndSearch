@@ -86,15 +86,17 @@ public interface LuceneSearchService {
         Iterable<Document> iter = new PagedIteration<TopDocs, Document>() {
             @Override
             public TopDocs getFirstPage() {
-                return Checked.uncheckedCall(() -> {
+                return Checked.checkedCall(() -> {
                     return searcher.search(query, pageSize);
-                });
+                }).orNull();
             }
 
             @Override
             public Iterator<Document> getItems(TopDocs info) {
-
-                return Checked.uncheckedCall(() -> {
+                if(info == null){
+                    return ReadOnlyIterator.of();
+                }
+                return Checked.checkedCall(() -> {
 
                     List<Document> result = new ArrayList<>(info.scoreDocs.length);
                     for (ScoreDoc scoreDoc : info.scoreDocs) {
@@ -105,24 +107,30 @@ public interface LuceneSearchService {
                         }
                     }
                     return result.iterator();
-                });
+                }).orElse(ReadOnlyIterator.of());
             }
 
             @Override
             public TopDocs getNextPage(TopDocs info) {
-                return Checked.uncheckedCall(() -> {
+                if(info == null){
+                    return null;
+                }
+                return Checked.checkedCall(() -> {
                     int len = info.scoreDocs.length;
                     // assume length > 0;
                     ScoreDoc lastDoc = info.scoreDocs[len - 1];
                     return searcher.searchAfter(lastDoc, query, pageSize);
-                });
+                }).orNull();
             }
 
             @Override
             public boolean hasNextPage(TopDocs info) {
+                if(info == null){
+                    return false;
+                }
                 boolean hasNext = info.scoreDocs.length == pageSize;
                 if (!hasNext) {
-                    Checked.uncheckedRun(() -> {
+                    Checked.checkedRun(() -> {
                         indexReader.close();
                     });
                 }

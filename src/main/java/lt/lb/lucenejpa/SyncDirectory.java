@@ -17,8 +17,8 @@ public abstract class SyncDirectory<T extends Directory> extends ForwardingDirec
     public boolean isReadOnly() {
         return false;
     }
-    
-    public boolean isEmpty() throws IOException{
+
+    public boolean isEmpty() throws IOException {
         return listAll().length == 0;
     }
 
@@ -48,8 +48,9 @@ public abstract class SyncDirectory<T extends Directory> extends ForwardingDirec
     }
 
     /**
-     * Commit changes to the remote repository from local For example memory ->
-     * database
+     * Commit changes to the remote repository from local
+     *
+     * For example memory -> database
      *
      * @throws IOException
      */

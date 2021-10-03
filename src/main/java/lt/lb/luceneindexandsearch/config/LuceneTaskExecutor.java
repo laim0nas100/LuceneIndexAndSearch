@@ -4,29 +4,27 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
-import lt.lb.commons.threads.service.ScheduledTaskExecutor;
-import lt.lb.commons.threads.sync.AtomicMap;
+import lt.lb.commons.threads.service.BasicTaskExecutorQueue;
+import lt.lb.commons.threads.service.TaskExecutorQueue;
 import lt.lb.uncheckedutils.func.UncheckedRunnable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
  *
- * @author Laimonas-Beniusis
+ * @author laim0nas100
  */
-public interface LuceneTaskExecutor extends ScheduledTaskExecutor<String> {
+public interface LuceneTaskExecutor extends TaskExecutorQueue<String, BasicTaskExecutorQueue.BasicRunInfo> {
 
     public static String getName(String kind, String folder) {
         return kind + "-" + folder;
     }
 
-    public static class LuceneTaskExecutorImpl implements LuceneTaskExecutor {
+    public static class LuceneTaskExecutorImpl extends BasicTaskExecutorQueue implements LuceneTaskExecutor {
 
         public static Logger logger = LogManager.getLogger(LuceneTaskExecutorImpl.class);
         public ExecutorService executor;
         public ScheduledExecutorService scheduler;
-
-        public AtomicMap<String, Occupy> atomicMap = new AtomicMap<>();
 
         public LuceneTaskExecutorImpl(ExecutorService executor, ScheduledExecutorService scheduler) {
             this.executor = Objects.requireNonNull(executor);
@@ -43,30 +41,32 @@ public interface LuceneTaskExecutor extends ScheduledTaskExecutor<String> {
             return executor;
         }
 
+        
+        private static String format(BasicRunInfo info, String msg){
+            return new StringBuilder()
+                    .append("[").append(info.getKey()).append("] ")
+                    .append(msg).append(":").append(info.getName())
+                    .toString();
+        }
         @Override
-        public AtomicMap<String, Occupy> getAtomicMap() {
-            return atomicMap;
+        public Optional<Throwable> onFailedEnqueue(BasicRunInfo info) {
+            logger.debug(format(info, "Allready running, failed to submit"));
+            return Optional.empty();
         }
 
         @Override
-        public UncheckedRunnable beforeRun(String name, UncheckedRunnable run) {
-            logger.debug(name + " Start");
+        public UncheckedRunnable beforeRun(BasicRunInfo info, UncheckedRunnable run) {
+            logger.debug(format(info, "Start"));
             return run;
         }
 
         @Override
-        public void afterRun(String name, Optional<Throwable> error) {
+        public void afterRun(BasicRunInfo info, Optional<Throwable> error) {
             if (error.isPresent()) {
-                logger.error(name + " End with error", error.get());
+                logger.error(format(info, "Errored"), error.get());
             } else {
-                logger.debug(name + " End");
+                logger.debug(format(info, "End"));
             }
         }
-
-        @Override
-        public void failedToSubmit(FailedSubmitCase failedCase, String name, UncheckedRunnable run) {
-            logger.debug(name + " Allready running, failed to submit");
-        }
-
     }
 }

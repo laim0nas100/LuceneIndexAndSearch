@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicLong;
 import lt.lb.commons.Java;
 import lt.lb.commons.containers.tuples.Tuple;
 import lt.lb.commons.threads.executors.FastExecutor;
@@ -68,6 +69,25 @@ public interface LuceneServicesResolver<Property> {
         TaskBatcher.BatchRunSummary summary = batcher.awaitTolerateFails();
 
         return new Tuple<>(docs, summary);
+    }
+    
+    public default Tuple<Long, BatchRunSummary> fastThreadedCount(Executor exe, Query query) throws IOException {
+        Set<Property> keySet = getMultiIndexingConfig().getIndexingConfigMap().keySet();
+        TaskBatcher batcher = new TaskBatcher(exe);
+        AtomicLong atomicCount = new AtomicLong(0L);
+        for (Property prop : keySet) {
+
+            LuceneSearchService search = getSearch(prop);
+            batcher.execute(() -> {
+                atomicCount.addAndGet(search.count(query));
+                return null;
+            });
+
+        }
+
+        TaskBatcher.BatchRunSummary summary = batcher.awaitTolerateFails();
+
+        return new Tuple<>(atomicCount.get(), summary);
     }
 
     public default LuceneSearchService getMultiSearch() throws IOException {
