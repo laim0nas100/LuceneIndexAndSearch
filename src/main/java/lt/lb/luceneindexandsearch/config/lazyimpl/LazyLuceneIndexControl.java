@@ -61,6 +61,7 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
     protected int batchWriteCount = 25;
     protected Supplier<Map<Property, LuceneCachedMap<ID, D>>> cachingStrategy;
     protected boolean callGC = true;
+    protected boolean updateOnAdd = true;
 
     public LazyLuceneIndexControl(Supplier<Map<Property, LuceneCachedMap<ID, D>>> cachingStrategy) {
         this.cachingStrategy = Objects.requireNonNull(cachingStrategy);
@@ -88,17 +89,15 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
 
     protected LuceneCachedMap<ID, D> populateMap(Property prop) throws IOException {
         logger.trace("populateMap {}", prop);
-        Map<ID, D> map = new HashMap<>();
-        getLuceneExecutor().execute(() -> {
-            getLuceneServicesResolver().getSearch(prop)
+        return getLuceneExecutor().call(() -> {
+            return getLuceneServicesResolver().getSearch(prop)
                     .pagingSearch(new MatchAllDocsQuery(), fieldsToLoad(prop))
                     .map(doc -> documentInfoRetrieve(doc))
-                    .forEach(changed -> {
-                        map.putIfAbsent(changed.getID(), changed.getChanged());
-                    });
-        }).throwIfErrorUnwrapping(IOException.class);
+                    .collect(IdAndChanged.collector());
+        }).map(m -> new LuceneCachedMapImpl<>(m))
+                .throwIfErrorUnwrapping(IOException.class)
+                .orElseGet(() -> LuceneCachedMapImpl.empty());
 
-        return new LuceneCachedMapImpl<>(map);
     }
 
     protected Map<Property, LuceneCachedMap<ID, D>> getNestedCachedMap() {
@@ -168,7 +167,7 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
         List<ID> idsToDelete = getAccessExecutor().call(() -> {
             return new ArrayList<>(idsToDelete(folderName, getCurrentIDs(folderName)));
 
-        }).throwIfErrorUnwrapping(IOException.class).get();
+        }).throwIfErrorUnwrapping(IOException.class).orElseGet(ArrayList::new);
 
         logger.trace("updateIndexDeletion({},{})", folderName, idsToDelete);
         if (idsToDelete.isEmpty()) {
@@ -209,7 +208,7 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
             return;
         }
 
-        writeIdsToIndex(false, folderName, idsToAdd);// TODO, multiple IDS can be present??? what
+        writeIdsToIndex(updateOnAdd, folderName, idsToAdd);// TODO, multiple IDS can be present??? what
     }
 
     public static class IdMap<ID> {
@@ -258,9 +257,8 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
             BooleanQuery notContainsQuery = new BooleanQuery.Builder().add(versionQuery, BooleanClause.Occur.MUST_NOT).build();
             Stream<Document> differentVersionDocuments = search.pagingSearch(notContainsQuery, fieldsToLoad(folderName));
 
-            Map<ID, D> idsToChange = new HashMap<>();
-            differentVersionDocuments.map(doc -> this.documentInfoRetrieve(doc))
-                    .forEach(m -> idsToChange.put(m.getID(), m.getChanged()));
+            Map<ID, D> idsToChange = differentVersionDocuments.map(doc -> documentInfoRetrieve(doc))
+                    .collect(IdAndChanged.collector());
             writeIdsToIndex(true, folderName, idsToChange);
         }).throwIfErrorUnwrapping(IOException.class);
 
@@ -291,7 +289,7 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
                     return requestIndexableMaps(folderName, batch);
                 }).map(maps -> { // out of access call
                     if (maps.isEmpty()) {
-                        return null;
+                        return 0L;
                     }
                     try (IndexWriter indexWriter = resolver.getWriter(folderName).getIndexWriter()) {
                         if (update) {
@@ -305,10 +303,9 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
                             indexWriter.addDocuments(docs);
 
                         }
-                        indexWriter.commit();
+                        return indexWriter.commit();
                     }
-                    return null;
-                }).throwIfErrorAsNested();
+                }).throwIfErrorAsNested().orNull();
             });
         }).throwIfErrorUnwrapping(IOException.class);
 

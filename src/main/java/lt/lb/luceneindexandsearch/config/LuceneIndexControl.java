@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 import lt.lb.lucenejpa.SyncDirectory;
 import lt.lb.uncheckedutils.SafeOpt;
 import org.apache.lucene.index.CheckIndex;
@@ -118,6 +120,10 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
                     return version;
                 }
             };
+        }
+
+        public static <ID, D extends Comparable<D>> Collector<IdAndChanged<ID, D>, ?, Map<ID, D>> collector() {
+            return Collectors.toMap(d -> d.getID(), d -> d.getChanged());
         }
     }
 
