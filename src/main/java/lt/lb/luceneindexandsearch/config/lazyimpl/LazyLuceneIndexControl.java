@@ -15,14 +15,19 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lt.lb.commons.Lazy;
 import lt.lb.commons.containers.collections.CollectionOp;
+import lt.lb.commons.containers.values.IntegerValue;
+import lt.lb.commons.containers.values.LongValue;
 import lt.lb.commons.containers.values.ThreadLocalValue;
+import lt.lb.commons.iteration.For;
 import lt.lb.luceneindexandsearch.config.DocumentFieldsConfig;
 import lt.lb.luceneindexandsearch.config.LuceneIndexControl;
 import lt.lb.luceneindexandsearch.config.LuceneSearchService;
 import lt.lb.luceneindexandsearch.config.LuceneServicesResolver;
+import lt.lb.lucenejpa.SyncDirectory;
 import lt.lb.uncheckedutils.Checked;
 import lt.lb.uncheckedutils.CheckedExecutor;
 import lt.lb.uncheckedutils.PassableException;
+import lt.lb.uncheckedutils.SafeOpt;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -231,6 +236,8 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
         return String.valueOf(id);
     }
 
+    protected abstract SafeOpt<ID> mainIdFromString(String string);
+
     protected abstract IdAndChanged<ID, D> documentInfoRetrieve(Document doc);
 
     protected abstract String getIndexableItemVersion(Property folderName);
@@ -399,6 +406,46 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
         getLuceneExecutor().execute(() -> {
             LuceneIndexControl.super.updateIndexesCleanup();
         }).throwIfErrorUnwrapping(IOException.class);
+    }
+
+    @Override
+    public void deduplify(Property folderName) throws IOException {
+        if(isPresentAndWritable(folderName).isEmpty()){
+            return;
+        }
+        getLuceneExecutor().execute(() -> {
+            LuceneSearchService search = getLuceneServicesResolver().getSearch(folderName);
+            Map<ID, LongValue> countMap = new HashMap<>();
+            search.search(new MatchAllDocsQuery()).map(m -> m.get(search.mainIdField()))
+                    .map(m -> SafeOpt.of(m).flatMap(this::mainIdFromString)).filter(f -> f.isPresent())
+                    .map(m -> m.get()).forEach(id -> {
+                countMap.computeIfAbsent(id, i -> new LongValue(0)).incrementAndGet();
+            });
+            List<ID> toRemove = new ArrayList<>();
+            For.entries().iterate(countMap, (id, count) -> {
+                if (count.get() >= 2) {
+                    toRemove.add(id);
+                }
+            });
+
+            if (!toRemove.isEmpty()) {
+                getLuceneExecutor().execute(() -> {
+                    List<List<ID>> partition = ListUtils.partition(toRemove, batchWriteCount);
+
+                    LuceneServicesResolver<Property> resolver = getLuceneServicesResolver();
+                    for (List<ID> batch : partition) {
+
+                        try (IndexWriter indexWriter = resolver.getWriter(folderName).getIndexWriter()) {
+                            Query query = idsToQuery(batch, folderName);
+                            indexWriter.deleteDocuments(query);
+                            indexWriter.commit();
+                        }
+                    }
+                }).throwIfErrorUnwrapping(IOException.class);
+            }
+
+        }).throwIfErrorAsNested();
+
     }
 
 }

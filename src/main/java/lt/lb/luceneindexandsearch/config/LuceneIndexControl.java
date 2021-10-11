@@ -159,6 +159,14 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
 
     public void idSanityCheck(Property prop, StringBuilder sb) throws IOException;
 
+    public void deduplify(Property prop) throws IOException;
+
+    public default void deduplifyAll() throws IOException {
+        for (Property key : getNestedKeys()) {
+            deduplify(key);
+        }
+    }
+
     /**
      * Delete every Lucene file associated with this folder
      *
@@ -253,17 +261,16 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
      * @throws IOException
      */
     public default void updateIndexPrepare(Property folder) throws IOException {
-        IndexingConfig indexing = resolveConfig(folder);
-        SyncDirectory dir = indexing.getDirectory();
-        if (dir.isReadOnly()) {
-            return;
-        }
-        dir.syncLocal();
-        if (dir.isEmpty()) {
-            try (IndexWriter indexWriter = indexing.getIndexWriter()) {
-                indexWriter.commit();
+
+        isPresentAndWritable(folder).peek(c -> {
+            SyncDirectory dir = c.getDirectory();
+            dir.syncLocal();
+            if (dir.isEmpty()) {
+                try (IndexWriter indexWriter = c.getIndexWriter()) {
+                    indexWriter.commit();
+                }
             }
-        }
+        }).throwIfErrorUnwrapping(IOException.class);
     }
 
     public default void updateIndexesPrepare() throws IOException {
@@ -279,12 +286,11 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
      * @throws IOException
      */
     public default void updateIndexCleanup(Property folder) throws IOException {
-        IndexingConfig indexing = resolveConfig(folder);
-        SyncDirectory dir = indexing.getDirectory();
-        if (dir.isReadOnly()) {
-            return;
-        }
-        dir.syncRemote();
+        isPresentAndWritable(folder).map(c -> c.getDirectory()).peek(dir -> dir.syncRemote()).throwIfErrorUnwrapping(IOException.class);
+    }
+
+    public default SafeOpt<IndexingConfig> isPresentAndWritable(Property folder) throws IOException {
+        return SafeOpt.ofNullable(folder).map(m -> resolveConfig(m)).filter(config -> !config.getDirectory().isReadOnly());
     }
 
     public default void updateIndexesCleanup() throws IOException {
