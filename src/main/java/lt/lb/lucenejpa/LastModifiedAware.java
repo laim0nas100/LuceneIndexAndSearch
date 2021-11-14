@@ -3,8 +3,9 @@ package lt.lb.lucenejpa;
 import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 import lt.lb.commons.containers.values.Value;
-import lt.lb.commons.misc.compare.Compare;
-import lt.lb.commons.misc.compare.Compare.SimpleCompare;
+import lt.lb.readablecompare.Compare;
+import lt.lb.readablecompare.CompareNull;
+import lt.lb.readablecompare.SimpleCompare;
 
 /**
  *
@@ -47,7 +48,7 @@ public interface LastModifiedAware {
     }
     
     public static LastModifiedAware ofMap(){
-        SimpleCompare<Date> cmp = Compare.of(Compare.CompareNull.NULL_LOWER);
+        SimpleCompare<Date> cmp = Compare.of(CompareNull.NULL_LOWER);
         ConcurrentHashMap<String,Date> map = new ConcurrentHashMap<>();
         Value<Date> lastChange = new Value<>();
         return new LastModifiedAware() {

@@ -19,13 +19,13 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import lt.lb.commons.Java;
-import lt.lb.uncheckedutils.SafeOpt;
-import lt.lb.commons.misc.compare.Compare;
 import lt.lb.lucenejpa.DirConfig;
 import lt.lb.lucenejpa.LastModifiedAware;
+import lt.lb.readablecompare.Compare;
+import lt.lb.readablecompare.CompareOperator;
+import lt.lb.uncheckedutils.SafeOpt;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.store.BaseDirectory;
 import org.apache.lucene.store.ByteBuffersDataOutput;
@@ -276,7 +276,7 @@ public class FlushByteBuffersDirectory extends BaseDirectory implements LastModi
 
     @Override
     public void registerChange(String name, final Date date) {
-        if (Compare.compareNullLower(lastChange, Compare.CompareOperator.LESS, date)) { // accept only newer
+        if (Compare.compareNullLower(lastChange, CompareOperator.LESS, date)) { // accept only newer
             this.lastChange = date;
         }
         this.files.compute(name, (n, f) -> {

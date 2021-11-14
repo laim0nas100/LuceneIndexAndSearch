@@ -4,30 +4,21 @@ import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.persistence.EntityManager;
 import javax.persistence.LockModeType;
-import javax.persistence.TypedQuery;
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Path;
-import javax.persistence.criteria.Predicate;
-import javax.persistence.criteria.Root;
-import lt.lb.uncheckedutils.SafeOpt;
 import lt.lb.commons.io.ExtInputStream;
 import lt.lb.commons.io.ForwardingExtInputStream;
+import static lt.lb.commons.jpa.querydecor.JpaDecorHelp.*;
 import lt.lb.commons.jpa.querydecor.JpaQueryDecor;
-import lt.lb.uncheckedutils.NestedException;
 import lt.lb.lucenejpa.model.LuceneBlob;
 import lt.lb.lucenejpa.model.LuceneFile;
 import lt.lb.lucenejpa.model.LuceneFile_;
+import lt.lb.uncheckedutils.SafeOpt;
 import lt.lb.uncheckedutils.func.UncheckedConsumer;
 import lt.lb.uncheckedutils.func.UncheckedFunction;
 import org.apache.logging.log4j.LogManager;
@@ -41,41 +32,26 @@ public class Q {
 
     private static final Logger LOGGER = LogManager.getLogger(Q.class);
 
-    private static <T> List<Predicate> directorySelected(DirConfig conf, CriteriaBuilder builder, Path<LuceneFile> path) {
-        List<Predicate> predicates = new ArrayList<>(1);
-        Predicate equal = builder.equal(path.get(LuceneFile_.folderName), conf.getFolderName());
-        predicates.add(equal);
-        return predicates;
-    }
-
-    private static <T> CriteriaQuery<T> addPredicates(List<Predicate> pred, CriteriaQuery<T> query) {
-        Predicate[] array = pred.stream().toArray(s -> new Predicate[s]);
-        return query.where(array);
-    }
-
     private static JpaQueryDecor<LuceneFile, LuceneFile> baseKindDecor(KindConfig conf) {
         Objects.requireNonNull(conf);
         return JpaQueryDecor.of(LuceneFile.class)
-                .withPred(LuceneFile_.fileOrigin, (c, p) -> c.equal(p, conf.getFileOrigin()))
-                .withPred(LuceneFile_.fileKind, (c, p) -> c.equal(p, conf.getFileKind()));
+                .withPred(equal(LuceneFile_.fileOrigin, conf.getFileOrigin()))
+                .withPred(equal(LuceneFile_.fileKind, conf.getFileKind()));
     }
 
     private static JpaQueryDecor<LuceneFile, LuceneFile> baseDecor(DirConfig conf) {
         Objects.requireNonNull(conf);
         return baseKindDecor(conf)
-                .withPred(LuceneFile_.folderName, (c, p) -> c.equal(p, conf.getFolderName())).withDec4(p4 -> {
-            p4.query().setLockMode(LockModeType.NONE);
-        });
+                .withPred(equal(LuceneFile_.folderName, conf.getFolderName()))
+                .setLockMode(LockModeType.NONE);
     }
 
     private static JpaQueryDecor<LuceneFile, LuceneFile> baseDecor(DirConfig conf, String fileName) {
         Objects.requireNonNull(conf);
         Objects.requireNonNull(fileName);
         return baseDecor(conf)
-                .withPred(LuceneFile_.fileName, (c, p) -> c.equal(p, fileName))
-                .withDec4(p4 -> {
-                    p4.query().setLockMode(LockModeType.NONE);
-                });
+                .withPred(equal(LuceneFile_.fileName, fileName))
+                .setLockMode(LockModeType.NONE);
     }
 
     public static class IdName {
@@ -132,7 +108,7 @@ public class Q {
         return transactionCall(conf, em -> {
             return baseDecor(conf)
                     .selecting(LuceneFile_.fileName)
-                    .withPred(p -> p.cb().isFalse(p.root().get(LuceneFile_.temp)))
+                    .withPred(isFalse(LuceneFile_.temp))
                     .buildList(em).stream()
                     .sorted()
                     .toArray(s -> new String[s]);
@@ -156,7 +132,7 @@ public class Q {
         return transactionCall(conf, em -> {
             return baseDecor(conf)
                     .selecting(LuceneFile_.fileName)
-                    .withPred(p -> p.cb().isTrue(p.root().get(LuceneFile_.temp)))
+                    .withPred(isTrue(LuceneFile_.temp))
                     .buildList(em).stream()
                     .collect(Collectors.toSet());
         });
@@ -363,25 +339,5 @@ public class Q {
         };
 
         return saveFile(conf, fileName, extInput, content.length, temp, date);
-    }
-
-    public static String[] listAllOld(DirConfig conf) throws IOException {
-
-        return transactionCall(conf, em -> {
-            List<Predicate> predicates = new ArrayList<>();
-
-            CriteriaBuilder criteriaBuilder = em.getCriteriaBuilder();
-            CriteriaQuery<String> query = criteriaBuilder.createQuery(String.class);
-            Root<LuceneFile> from = query.from(LuceneFile.class);
-            CriteriaQuery<String> select = query.select(from.get(LuceneFile_.fileName));
-            predicates.addAll(directorySelected(conf, criteriaBuilder, from));
-
-            select = addPredicates(predicates, select);
-
-            TypedQuery<String> createQuery = em.createQuery(select);
-
-            return createQuery.getResultList().stream().toArray(s -> new String[s]);
-        });
-
     }
 }

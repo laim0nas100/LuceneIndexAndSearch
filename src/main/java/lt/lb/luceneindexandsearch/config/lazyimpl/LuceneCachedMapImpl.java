@@ -6,7 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import lt.lb.commons.misc.compare.Compare;
+import lt.lb.readablecompare.Compare;
+import lt.lb.readablecompare.CompareOperator;
 
 /**
  *
@@ -32,7 +33,7 @@ public class LuceneCachedMapImpl<ID, D extends Comparable<D>> implements LuceneC
     public void recalculate() {
         List<Map.Entry<ID, D>> entries = new ArrayList<>(map.entrySet());
         for (Map.Entry<ID, D> en : entries) {
-            if (Compare.compareNullLower(maxChanged, Compare.CompareOperator.LESS, en.getValue())) {
+            if (Compare.compareNullLower(maxChanged, CompareOperator.LESS, en.getValue())) {
                 maxChanged = en.getValue();
                 maxChangedID = en.getKey();
             }
