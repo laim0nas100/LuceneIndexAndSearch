@@ -12,11 +12,11 @@
         <gendir>${project.basedir}/src/main/java/</gendir>
         <lucene.ver>8.8.1</lucene.ver>
         <tika.ver>1.25</tika.ver>
-<!--        <lb.dir>com.github.laim0nas100.Commons</lb.dir>
-        <lb.ver>2021.10v2</lb.ver>-->
+        <lb.dir>com.github.laim0nas100.Commons</lb.dir>
+        <lb.ver>2021.11v1</lb.ver>
         
-         <lb.dir>lt.lb.Commons</lb.dir>
-        <lb.ver>local-jar</lb.ver>
+<!--         <lb.dir>lt.lb.Commons</lb.dir>
+        <lb.ver>local-jar</lb.ver>-->
         
     </properties>
     
