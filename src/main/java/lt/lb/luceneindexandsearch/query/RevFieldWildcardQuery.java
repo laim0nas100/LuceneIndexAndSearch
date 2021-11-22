@@ -3,14 +3,11 @@ package lt.lb.luceneindexandsearch.query;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import lt.lb.commons.DLog;
 import lt.lb.configurablelexer.anymatch.PosMatched;
-import lt.lb.configurablelexer.anymatch.impl.SimpleStringPosMatcherCombinator;
 import lt.lb.configurablelexer.anymatch.impl.ConfMatchers;
 import lt.lb.configurablelexer.anymatch.impl.ConfMatchers.PM;
 import lt.lb.configurablelexer.anymatch.impl.SimplePosMatcherCombinator;
@@ -23,8 +20,6 @@ import lt.lb.configurablelexer.token.DefaultConfTokenizer;
 import lt.lb.configurablelexer.token.base.KeywordToken;
 import lt.lb.configurablelexer.token.base.LiteralToken;
 import lt.lb.configurablelexer.token.base.StringToken;
-import lt.lb.luceneindexandsearch.indexing.content.Premade;
-import lt.lb.luceneindexandsearch.indexing.content.SimpleAnalyzer;
 import org.apache.commons.lang3.RegExUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.lucene.analysis.Analyzer;
@@ -281,37 +276,4 @@ public class RevFieldWildcardQuery {
         return tokenizeTerms(tokenize, analyzer).stream().collect(Collectors.joining(" "));
     }
 
-    public static void main(String[] args) throws Exception {
-        DLog.main().async = true;
-        SimpleAnalyzer defaultAnalyzer = Premade.defaultSearchAnalyzer();
-
-        String term = "*hell?o?? *help?me?jesus? " + " NOT " + " **something else?* regular";
-//        String term = "*13225456 ";
-
-//        String term = " ";
-        
-//        for (int i = 0; i < 10; i++) {
-//            term = term + " " + term;
-//        }
-
-        TokenStream tokenStream = defaultAnalyzer.tokenStream(OPERATOR_AND, term);
-        tokenStream.reset();
-        while (true) {
-
-            boolean inc = tokenStream.incrementToken();
-
-            CharTermAttribute attribute = tokenStream.getAttribute(CharTermAttribute.class);
-            DLog.print(attribute.toString());
-            if (!inc) {
-                break;
-            }
-        }
-        tokenStream.close();
-        DLog.print("Build query");
-        Query query = buildQuery(term, defaultAnalyzer, "field", "revField");
-        DLog.print("After build");
-        DLog.print(query);
-        DLog.close();
-
-    }
 }

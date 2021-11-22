@@ -1,11 +1,12 @@
 package lt.lb.luceneindexandsearch.config.lazyimpl;
 
-import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import lt.lb.commons.containers.collections.ImmutableCollections;
 import lt.lb.readablecompare.Compare;
 import lt.lb.readablecompare.CompareOperator;
 
@@ -20,7 +21,7 @@ public class LuceneCachedMapImpl<ID, D extends Comparable<D>> implements LuceneC
     protected volatile D maxChanged;
     
     public  static <ID, D extends Comparable<D>> LuceneCachedMapImpl<ID,D> empty(){
-        ImmutableMap<ID, D> map = ImmutableMap.of();
+        Map<ID, D> map = ImmutableCollections.mapOf();
         return new LuceneCachedMapImpl<>(map);
     }
 

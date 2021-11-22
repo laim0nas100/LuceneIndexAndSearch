@@ -11,9 +11,9 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <gendir>${project.basedir}/src/main/java/</gendir>
         <lucene.ver>8.8.1</lucene.ver>
-        <tika.ver>1.25</tika.ver>
+        <tika.ver>2.1.0</tika.ver>
         <lb.dir>com.github.laim0nas100.Commons</lb.dir>
-        <lb.ver>2021.11v1</lb.ver>
+        <lb.ver>2021.11v2</lb.ver>
         
 <!--         <lb.dir>lt.lb.Commons</lb.dir>
         <lb.ver>local-jar</lb.ver>-->
@@ -32,6 +32,7 @@
             <groupId>${lb.dir}</groupId>
             <artifactId>commonslb-log</artifactId>
             <version>${lb.ver}</version>
+            <scope>test</scope>
         </dependency>
         
         <dependency>
@@ -71,17 +72,17 @@
         </dependency>
         <dependency>
             <groupId>org.apache.tika</groupId>
-            <artifactId>tika-parsers</artifactId>
+            <artifactId>tika-parsers-standard-package</artifactId>
             <version>${tika.ver}</version>
             <exclusions>
-                <exclusion>
-                    <groupId>org.bouncycastle</groupId>
-                    <artifactId>bcmail-jdk15on</artifactId>
+<!--                <exclusion>
+                    <groupId>org.apache.tika</groupId>
+                    <artifactId>tika-parser-crypto-module</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>org.bouncycastle</groupId>
-                    <artifactId>bcprov-jdk15on</artifactId>
-                </exclusion>
+                    <groupId>org.apache.tika</groupId>
+                    <artifactId>tika-parser-digest-commons</artifactId>
+                </exclusion>-->
             </exclusions>
         </dependency>
 
