@@ -6,12 +6,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import lt.lb.commons.iteration.PagedIteration;
 import lt.lb.commons.iteration.ReadOnlyIterator;
 import lt.lb.luceneindexandsearch.config.indexing.IndexingReaderConfig;
 import lt.lb.uncheckedutils.Checked;
 import lt.lb.uncheckedutils.func.UncheckedFunction;
-import lt.lb.uncheckedutils.func.UncheckedRunnable;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
@@ -27,6 +29,8 @@ import org.apache.lucene.search.TopDocs;
  * @author laim0nas100
  */
 public interface LuceneSearchService {
+
+    public static final Logger logger = LogManager.getLogger(LuceneSearchService.class);
 
     public default int pageSize() {
         return 10000;
@@ -51,8 +55,8 @@ public interface LuceneSearchService {
     public default Query makeMainIdQuery(String searchStr) {
         return new TermQuery(maidIdTerm(searchStr));
     }
-    
-    public default String mainIdField(){
+
+    public default String mainIdField() {
         DocumentFieldsConfig docFields = getIndexingConfig().getDocumentFieldsConfig();
         String mainIdFieldName = docFields.getMainIdFieldName();
         return mainIdFieldName;
@@ -86,14 +90,21 @@ public interface LuceneSearchService {
         Iterable<Document> iter = new PagedIteration<TopDocs, Document>() {
             @Override
             public TopDocs getFirstPage() {
-                return Checked.checkedCall(() -> {
+                TopDocs docs = Checked.checkedCall(() -> {
                     return searcher.search(query, pageSize);
-                }).orNull();
+                }).peekError(err -> logger.error("Error in getting first page of query:" + query, err)).orNull();
+
+                if (docs == null) { // not even a first page, better close this thing.
+                    Checked.uncheckedRun(() -> {
+                        indexReader.close();
+                    });
+                }
+                return docs;
             }
 
             @Override
             public Iterator<Document> getItems(TopDocs info) {
-                if(info == null){
+                if (info == null) {
                     return ReadOnlyIterator.of();
                 }
                 return Checked.checkedCall(() -> {
@@ -107,12 +118,13 @@ public interface LuceneSearchService {
                         }
                     }
                     return result.iterator();
-                }).orElse(ReadOnlyIterator.of());
+                }).peekError(err -> logger.error("Error in getting items of query:" + query, err))
+                        .orElse(ReadOnlyIterator.of());
             }
 
             @Override
             public TopDocs getNextPage(TopDocs info) {
-                if(info == null){
+                if (info == null) {
                     return null;
                 }
                 return Checked.checkedCall(() -> {
@@ -120,17 +132,17 @@ public interface LuceneSearchService {
                     // assume length > 0;
                     ScoreDoc lastDoc = info.scoreDocs[len - 1];
                     return searcher.searchAfter(lastDoc, query, pageSize);
-                }).orNull();
+                }).peekError(err -> logger.error("Error in getting nextPage page of query:" + query, err)).orNull();
             }
 
             @Override
             public boolean hasNextPage(TopDocs info) {
-                if(info == null){
+                if (info == null) {
                     return false;
                 }
                 boolean hasNext = info.scoreDocs.length == pageSize;
                 if (!hasNext) {
-                    Checked.checkedRun(() -> {
+                    Checked.uncheckedRun(() -> {
                         indexReader.close();
                     });
                 }
@@ -138,10 +150,7 @@ public interface LuceneSearchService {
             }
         };
 
-        return ReadOnlyIterator.of(iter)
-                .withEnsuredCloseOperation((UncheckedRunnable) () -> {
-                    indexReader.close();
-                }).toStream();
+        return StreamSupport.stream(iter.spliterator(), false);
 
     }
 

@@ -22,7 +22,7 @@ public interface LuceneTaskExecutor extends TaskExecutorQueue<String, BasicTaskE
 
     public static class LuceneTaskExecutorImpl extends BasicTaskExecutorQueue implements LuceneTaskExecutor {
 
-        public static Logger logger = LogManager.getLogger(LuceneTaskExecutorImpl.class);
+        public static Logger logger = LogManager.getLogger(LuceneTaskExecutor.class);
         public ExecutorService executor;
         public ScheduledExecutorService scheduler;
 
