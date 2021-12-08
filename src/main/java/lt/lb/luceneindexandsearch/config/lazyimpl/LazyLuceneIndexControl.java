@@ -64,6 +64,7 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
     protected LuceneServicesResolver<Property> luceneServices;
 
     protected int batchWriteCount = 25;
+    protected int batchDeleteCount = 100;
     protected Supplier<Map<Property, LuceneCachedMap<ID, D>>> cachingStrategy;
     protected boolean callGC = true;
     protected boolean updateOnAdd = true;
@@ -179,17 +180,18 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
             return;
         }
         getLuceneExecutor().execute(() -> {
-            List<List<ID>> partition = ListUtils.partition(idsToDelete, batchWriteCount);
+            List<List<ID>> partition = ListUtils.partition(idsToDelete, batchDeleteCount);
 
             LuceneServicesResolver<Property> resolver = getLuceneServicesResolver();
-            for (List<ID> batch : partition) {
 
-                try (IndexWriter indexWriter = resolver.getWriter(folderName).getIndexWriter()) {
+            try (IndexWriter indexWriter = resolver.getWriter(folderName).getIndexWriter()) {
+                for (List<ID> batch : partition) {
                     Query query = idsToQuery(batch, folderName);
                     indexWriter.deleteDocuments(query);
                     indexWriter.commit();
                 }
             }
+
         }).throwIfErrorUnwrapping(IOException.class);
 
     }
@@ -410,7 +412,7 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
 
     @Override
     public void deduplify(Property folderName) throws IOException {
-        if(isPresentAndWritable(folderName).isEmpty()){
+        if (isPresentAndWritable(folderName).isEmpty()) {
             return;
         }
         getLuceneExecutor().execute(() -> {
