@@ -13,7 +13,7 @@
         <lucene.ver>8.8.1</lucene.ver>
         <tika.ver>2.1.0</tika.ver>
         <lb.dir>com.github.laim0nas100.Commons</lb.dir>
-        <lb.ver>2021.11v2</lb.ver>
+        <lb.ver>2022.01v1</lb.ver>
         
 <!--         <lb.dir>lt.lb.Commons</lb.dir>
         <lb.ver>local-jar</lb.ver>-->
