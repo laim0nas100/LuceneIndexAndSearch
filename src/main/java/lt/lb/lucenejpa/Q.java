@@ -11,8 +11,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import javax.persistence.EntityManager;
 import javax.persistence.LockModeType;
-import lt.lb.commons.io.ExtInputStream;
-import lt.lb.commons.io.ForwardingExtInputStream;
+import lt.lb.commons.io.stream.ForwardingInputStream;
 import static lt.lb.commons.jpa.querydecor.JpaDecorHelp.*;
 import lt.lb.commons.jpa.querydecor.JpaQueryDecor;
 import lt.lb.lucenejpa.model.LuceneBlob;
@@ -283,7 +282,7 @@ public class Q {
         });
     }
 
-    public static boolean saveFile(DirConfig conf, String fileName, ExtInputStream stream, long length, boolean temp, Date date) throws IOException {
+    public static boolean saveFile(DirConfig conf, String fileName, InputStream stream, long length, boolean temp, Date date) throws IOException {
         LOGGER.trace("saveFile({},{})", conf, fileName);
 
         return transactionCall(conf, em -> {
@@ -331,7 +330,7 @@ public class Q {
     public static boolean saveFileBytes(DirConfig conf, String fileName, byte[] content, boolean temp, Date date) throws IOException {
         LOGGER.trace("saveFileBytes({},{})", conf, fileName);
         ByteArrayInputStream stream = new ByteArrayInputStream(content);
-        ForwardingExtInputStream extInput = new ForwardingExtInputStream() {
+        ForwardingInputStream extInput = new ForwardingInputStream() {
             @Override
             public InputStream delegate() {
                 return stream;

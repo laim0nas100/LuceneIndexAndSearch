@@ -5,12 +5,14 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import lt.lb.commons.containers.collections.ImmutableCollections;
 import lt.lb.lucenejpa.SyncDirectory;
 import lt.lb.uncheckedutils.SafeOpt;
 import org.apache.lucene.index.CheckIndex;
@@ -49,57 +51,61 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
     public default IndexingConfig resolveConfig(Property prop) throws IOException {
         return getLuceneServicesResolver().getMultiIndexingConfig().resolve(prop);
     }
-
+    
     public default Status checkIndex(Property prop, StringBuilder sb, boolean verbose) throws IOException {
-
+        
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Status checked;
         try (PrintStream printStream = new PrintStream(baos, true); CheckIndex check = new CheckIndex(resolveDirectory(prop))) {
             check.setInfoStream(printStream, verbose);
-
+            
             checked = check.checkIndex();
-
+            
         }
         sb.append(baos.toString(StandardCharsets.UTF_8.name()));
         return checked;
     }
-
+    
     public default Status checkChecksums(Property prop, StringBuilder sb, boolean verbose) throws IOException {
-
+        
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Status checked;
         try (PrintStream printStream = new PrintStream(baos, true); CheckIndex check = new CheckIndex(resolveDirectory(prop))) {
             check.setChecksumsOnly(true);
             check.setInfoStream(printStream, verbose);
-
+            
             checked = check.checkIndex();
-
+            
         }
         sb.append(baos.toString(StandardCharsets.UTF_8.name()));
         return checked;
     }
-
+    
     public default void fixIndex(Property prop, StringBuilder sb, boolean verbose) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (PrintStream printStream = new PrintStream(baos, true); CheckIndex check = new CheckIndex(resolveDirectory(prop))) {
-
+            
             check.setInfoStream(printStream, verbose);
             check.exorciseIndex(check.checkIndex());
-
+            
         }
         sb.append(baos.toString(StandardCharsets.UTF_8.name()));
     }
-
-    public SafeOpt<Property> findCorrectFolder(ID id);
-
+    
+    public default SafeOpt<Property> findCorrectFolder(ID id) {
+        return SafeOpt.ofNullable(id).flatMap(m -> findCorrectFolders(ImmutableCollections.listOf(m))).filter(m -> m.size() == 1).map(m -> m.get(0));
+    }
+    
+    public SafeOpt<List<Property>> findCorrectFolders(Collection<ID> id);
+    
     public static interface IdAndChanged<ID, D extends Comparable<D>> {
-
+        
         public ID getID();
-
+        
         public D getChanged();
-
+        
         public String getVersion();
-
+        
         public static <ID, D extends Comparable<D>> IdAndChanged<ID, D> of(ID id, D change, String version) {
             Objects.requireNonNull(id, "ID must not be null");
             Objects.requireNonNull(change, "Changed must not be null");
@@ -109,36 +115,36 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
                 public ID getID() {
                     return id;
                 }
-
+                
                 @Override
                 public D getChanged() {
                     return change;
                 }
-
+                
                 @Override
                 public String getVersion() {
                     return version;
                 }
             };
         }
-
+        
         public static <ID, D extends Comparable<D>> Collector<IdAndChanged<ID, D>, ?, Map<ID, D>> collector() {
             return Collectors.toMap(d -> d.getID(), d -> d.getChanged());
         }
     }
-
+    
     public LuceneServicesResolver<Property> getLuceneServicesResolver();
-
+    
     public Map<ID, D> getCachedIDs(Property prop) throws IOException;
-
+    
     public Optional<D> getLastChange(Property prop) throws IOException;
-
+    
     public default List<Property> getNestedKeys() {
         return new ArrayList<>((getLuceneServicesResolver().getMultiIndexingConfig().getIndexingConfigMap().keySet()));
     }
-
+    
     public Long indexedCount(Property prop) throws IOException;
-
+    
     public default Long indexedCount() throws IOException {
         Long sum = 0L;
         for (Property prop : getNestedKeys()) {
@@ -146,9 +152,9 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
         }
         return sum;
     }
-
+    
     public Long indexableCount(Property prop) throws IOException;
-
+    
     public default Long indexableCount() throws IOException {
         Long sum = 0L;
         for (Property prop : getNestedKeys()) {
@@ -156,11 +162,11 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
         }
         return sum;
     }
-
+    
     public void idSanityCheck(Property prop, StringBuilder sb) throws IOException;
-
+    
     public void deduplify(Property prop) throws IOException;
-
+    
     public default void deduplifyAll() throws IOException {
         for (Property key : getNestedKeys()) {
             deduplify(key);
@@ -174,7 +180,7 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
      * @throws java.io.IOException
      */
     public void deleteFolder(Property folderName) throws IOException;
-
+    
     public default void deleteFolders() throws IOException {
         for (Property key : getNestedKeys()) {
             deleteFolder(key);
@@ -189,7 +195,7 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
      * @throws java.io.IOException
      */
     public void updateIndexDeletion(Property folderName) throws IOException;
-
+    
     public default void updateIndexesDeletions() throws IOException {
         for (Property key : getNestedKeys()) {
             updateIndexDeletion(key);
@@ -204,7 +210,7 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
      * @throws java.io.IOException
      */
     public void updateIndexAddition(Property folderName) throws IOException;
-
+    
     public default void updateIndexesAddition() throws IOException {
         for (Property key : getNestedKeys()) {
             updateIndexAddition(key);
@@ -220,13 +226,13 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
      * @throws java.io.IOException
      */
     public void updateIndexChange(Property folderName) throws IOException;
-
+    
     public default void updateIndexesChange() throws IOException {
         for (Property key : getNestedKeys()) {
             updateIndexChange(key);
         }
     }
-
+    
     public default void updateIndexVersions() throws IOException {
         for (Property prop : getNestedKeys()) {
             updateIndexVersion(prop);
@@ -241,17 +247,17 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
      * @throws java.io.IOException
      */
     public void updateIndexVersion(Property folderName) throws IOException;
-
+    
     public default void periodicMaintenance() throws IOException {
-
+        
         updateIndexesPrepare();
         updateIndexesAddition();
         updateIndexesChange();
         updateIndexesDeletions();
         updateIndexesCleanup();
-
+        
     }
-
+    
     public void initOrExpandNested() throws IOException;
 
     /**
@@ -261,7 +267,7 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
      * @throws IOException
      */
     public default void updateIndexPrepare(Property folder) throws IOException {
-
+        
         isPresentAndWritable(folder).peek(c -> {
             SyncDirectory dir = c.getDirectory();
             dir.syncLocal();
@@ -272,7 +278,7 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
             }
         }).throwIfErrorUnwrapping(IOException.class);
     }
-
+    
     public default void updateIndexesPrepare() throws IOException {
         for (Property prop : getNestedKeys()) {
             updateIndexPrepare(prop);
@@ -288,17 +294,17 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
     public default void updateIndexCleanup(Property folder) throws IOException {
         isPresentAndWritable(folder).map(c -> c.getDirectory()).peek(dir -> dir.syncRemote()).throwIfErrorUnwrapping(IOException.class);
     }
-
+    
     public default SafeOpt<IndexingConfig> isPresentAndWritable(Property folder) throws IOException {
         return SafeOpt.ofNullable(folder).map(m -> resolveConfig(m)).filter(config -> !config.getDirectory().isReadOnly());
     }
-
+    
     public default void updateIndexesCleanup() throws IOException {
         for (Property prop : getNestedKeys()) {
             updateIndexCleanup(prop);
         }
     }
-
+    
     public default void periodicMaintenance(Property folder) throws IOException {
         if (resolveDirectory(folder).isReadOnly()) {
             return;
@@ -309,5 +315,5 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
         updateIndexDeletion(folder);
         updateIndexCleanup(folder);
     }
-
+    
 }

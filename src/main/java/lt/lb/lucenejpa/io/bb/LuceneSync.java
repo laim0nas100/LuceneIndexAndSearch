@@ -1,6 +1,7 @@
 package lt.lb.lucenejpa.io.bb;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,7 +11,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import lt.lb.commons.io.ExtInputStream;
 import lt.lb.lucenejpa.DirConfig;
 import lt.lb.lucenejpa.Q;
 import lt.lb.lucenejpa.model.LuceneFile;
@@ -76,7 +76,7 @@ public class LuceneSync {
 
             public final String name;
             public final byte[] bytes;
-            public final ExtInputStream stream;
+            public final InputStream stream;
             public final long length;
             public final Date date;
 
@@ -88,7 +88,7 @@ public class LuceneSync {
                 this.stream = null;
             }
 
-            public OpNewOut(String name, ExtInputStream stream, long length, Date date) {
+            public OpNewOut(String name, InputStream stream, long length, Date date) {
                 this.name = name;
                 this.bytes = null;
                 this.length = length;

@@ -1,25 +1,15 @@
 package lt.lb.lucenejpa.io;
 
-import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.RandomAccessFile;
 import java.util.Date;
-import java.util.zip.CRC32;
-import java.util.zip.Checksum;
-import lt.lb.commons.io.ExtInputStream;
-import lt.lb.commons.io.ForwardingExtInputStream;
 import lt.lb.lucenejpa.DirConfig;
 import lt.lb.lucenejpa.Q;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.store.BufferedChecksum;
 import org.apache.lucene.store.IOContext;
-import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.OutputStreamIndexOutput;
 
 /**
@@ -53,47 +43,6 @@ public class DatabaseIndexOutput extends OutputStreamIndexOutput {
        this(new ByteArrayOutputStream(),directory,name,context);
     }
 
-//    @Override
-//    public long getFilePointer() {
-//        LOGGER.trace("{}.getFilePointer()", this);
-//        return pos;
-//    }
-//
-//    @Override
-//    public long getChecksum() throws IOException {
-//        LOGGER.trace("{}.getChecksum()", this);
-//        return digest.getValue();
-//    }
-//
-//    @Override
-//    public void writeByte(final byte b) throws IOException {
-//        LOGGER.trace("{}.writeByte({})", this, b);
-//        write(new byte[]{b}, 0, 1);
-//    }
-//
-//    @Override
-//    public void writeBytes(final byte[] b, final int offset, final int length) throws IOException {
-//        LOGGER.trace("{}.writeBytes({}, {}, {})", this, b, offset, length);
-//        write(b, offset, length);
-//    }
-
-//    public void write(final byte[] b, final int offset, final int length) throws IOException {
-//        pos += length;
-//        if (file == null && config.getThreshold() > pos) {
-//            baos.write(b, offset, length);
-//        } else {
-//            if (file == null) {
-//                tempFile = File.createTempFile(
-//                        config.tempFileName(name), ".ljt");
-//                file = new RandomAccessFile(tempFile, "rw");
-//                file.write(baos.toByteArray(), 0, baos.size());
-//                baos = null;
-//            }
-//            file.write(b, offset, length);
-//        }
-//        digest.update(b, offset, length);
-//    }
-
     @Override
     public void close() throws IOException {
         LOGGER.trace("{}.close()", this);
@@ -104,16 +53,16 @@ public class DatabaseIndexOutput extends OutputStreamIndexOutput {
         Q.saveFileBytes(config, name, getContent().readAllBytes(), false, new Date());
     }
     
-    public ExtInputStream savedContent;
+    public InputStream savedContent;
 
-    public ExtInputStream getContent() throws IOException {
+    public InputStream getContent() throws IOException {
         if(savedContent != null){
             return savedContent;
         }
             if(baos == null){
                 return null;
             }
-            savedContent =  ForwardingExtInputStream.of(new ByteArrayInputStream(baos.toByteArray()));
+            savedContent =  new ByteArrayInputStream(baos.toByteArray());
         
         return savedContent;
     }

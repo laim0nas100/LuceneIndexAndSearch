@@ -4,8 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.EOFException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import lt.lb.commons.io.ExtInputStream;
-import lt.lb.commons.io.ForwardingExtInputStream;
+import java.io.InputStream;
 import lt.lb.lucenejpa.DirConfig;
 import lt.lb.lucenejpa.Q;
 import org.apache.logging.log4j.LogManager;
@@ -20,7 +19,7 @@ public class DatabaseIndexInput extends IndexInput {
 
     private final DirConfig directory;
     private final String name;
-    private ExtInputStream stream;
+    private InputStream stream;
     private byte[] bytes;
     private long pos = 0;
 //    ByteBuffer buffer;
@@ -30,7 +29,7 @@ public class DatabaseIndexInput extends IndexInput {
         this.directory = dir;
         this.name = name;
         bytes = Q.fileContentBytes(dir, name).orElseThrow(FileNotFoundException::new);
-        stream = ForwardingExtInputStream.of(new ByteArrayInputStream(bytes));
+        stream = new ByteArrayInputStream(bytes);
     }
 
     @Override
@@ -52,7 +51,7 @@ public class DatabaseIndexInput extends IndexInput {
                 .append(name).toString();
     }
 
-    public ExtInputStream getStream() {
+    public InputStream getStream() {
         return stream;
     }
 
