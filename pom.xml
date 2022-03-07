@@ -30,6 +30,12 @@
         
         <dependency>
             <groupId>${lb.dir}</groupId>
+            <artifactId>commonslb-reflection</artifactId>
+            <version>${lb.ver}</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>${lb.dir}</groupId>
             <artifactId>commonslb-log</artifactId>
             <version>${lb.ver}</version>
             <scope>test</scope>
