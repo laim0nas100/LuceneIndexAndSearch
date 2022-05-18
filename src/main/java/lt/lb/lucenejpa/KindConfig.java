@@ -2,7 +2,7 @@ package lt.lb.lucenejpa;
 
 import javax.persistence.EntityManager;
 import lt.lb.commons.jpa.EntityFacade;
-import lt.lb.uncheckedutils.CheckedExecutor;
+import lt.lb.uncheckedutils.concurrent.CheckedExecutor;
 
 /**
  *

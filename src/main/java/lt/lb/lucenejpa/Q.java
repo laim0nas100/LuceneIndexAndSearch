@@ -96,7 +96,7 @@ public class Q {
         return transactionCall(conf, em -> {
 
             return baseDecor(conf)
-                    .buildList(em).stream()
+                    .buildStream(em)
                     .map(file -> new IdName(file.getId(), file.getFileName()))
                     .toArray(s -> new IdName[s]);
         });
@@ -108,7 +108,7 @@ public class Q {
             return baseDecor(conf)
                     .selecting(LuceneFile_.fileName)
                     .withPred(isFalse(LuceneFile_.temp))
-                    .buildList(em).stream()
+                    .buildStream(em)
                     .sorted()
                     .toArray(s -> new String[s]);
         });
@@ -120,7 +120,7 @@ public class Q {
             return baseKindDecor(conf)
                     .selecting(LuceneFile_.folderName)
                     .setDistinct(true)
-                    .buildList(em).stream()
+                    .buildStream(em)
                     .sorted()
                     .toArray(s -> new String[s]);
         });
@@ -132,7 +132,7 @@ public class Q {
             return baseDecor(conf)
                     .selecting(LuceneFile_.fileName)
                     .withPred(isTrue(LuceneFile_.temp))
-                    .buildList(em).stream()
+                    .buildStream(em)
                     .collect(Collectors.toSet());
         });
     }

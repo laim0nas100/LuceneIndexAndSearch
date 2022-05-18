@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.persistence.EntityManager;
 import lt.lb.commons.jpa.EntityFacade;
 import lt.lb.lucenejpa.Forwarding.DirConfigFromKind;
-import lt.lb.uncheckedutils.CheckedExecutor;
+import lt.lb.uncheckedutils.concurrent.CheckedExecutor;
 import org.apache.lucene.util.IOUtils;
 
 /**

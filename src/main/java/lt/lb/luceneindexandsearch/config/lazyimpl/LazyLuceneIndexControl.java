@@ -23,7 +23,7 @@ import lt.lb.luceneindexandsearch.config.LuceneIndexControl;
 import lt.lb.luceneindexandsearch.config.LuceneSearchService;
 import lt.lb.luceneindexandsearch.config.LuceneServicesResolver;
 import lt.lb.uncheckedutils.Checked;
-import lt.lb.uncheckedutils.CheckedExecutor;
+import lt.lb.uncheckedutils.concurrent.CheckedExecutor;
 import lt.lb.uncheckedutils.PassableException;
 import lt.lb.uncheckedutils.SafeOpt;
 import org.apache.commons.collections4.ListUtils;
