@@ -4,7 +4,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
-import lt.lb.lucenejpa.DirConfig;
+import lt.lb.luceneindexandsearch.splitting.JpaDirConfig;
 import lt.lb.lucenejpa.Q;
 import lt.lb.uncheckedutils.SafeOpt;
 import org.apache.lucene.store.ChecksumIndexInput;
@@ -19,7 +19,7 @@ import org.apache.lucene.store.IndexOutput;
  */
 public class FlushByteBuffersDirectoryReadOnly extends FlushByteBuffersDirectory {
 
-    public FlushByteBuffersDirectoryReadOnly(DirConfig dirConfig) {
+    public FlushByteBuffersDirectoryReadOnly(JpaDirConfig dirConfig) {
         super(dirConfig);
     }
 

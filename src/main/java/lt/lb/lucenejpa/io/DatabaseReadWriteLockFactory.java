@@ -2,7 +2,8 @@ package lt.lb.lucenejpa.io;
 
 import java.io.IOException;
 import java.util.Date;
-import lt.lb.lucenejpa.DirConfig;
+import lt.lb.luceneindexandsearch.splitting.DirConfig;
+import lt.lb.luceneindexandsearch.splitting.JpaDirConfig;
 import lt.lb.lucenejpa.Q;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -15,9 +16,9 @@ public class DatabaseReadWriteLockFactory extends LockFactory {
 
     private static final Logger LOGGER = LogManager.getLogger(DatabaseReadWriteLockFactory.class);
 
-    protected DirConfig config;
+    protected JpaDirConfig config;
 
-    public DatabaseReadWriteLockFactory(DirConfig conf) {
+    public DatabaseReadWriteLockFactory(JpaDirConfig conf) {
         this.config = conf;
     }
 

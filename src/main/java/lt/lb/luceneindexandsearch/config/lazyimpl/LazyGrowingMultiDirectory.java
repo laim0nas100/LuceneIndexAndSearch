@@ -6,7 +6,7 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import lt.lb.luceneindexandsearch.config.GrowingMultiDirectory;
 import lt.lb.luceneindexandsearch.config.Resolver;
-import lt.lb.lucenejpa.KindConfig;
+import lt.lb.luceneindexandsearch.splitting.KindConfig;
 import lt.lb.lucenejpa.SyncDirectory;
 
 /**

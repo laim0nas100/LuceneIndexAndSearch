@@ -22,6 +22,7 @@ import lt.lb.luceneindexandsearch.config.DocumentFieldsConfig;
 import lt.lb.luceneindexandsearch.config.LuceneIndexControl;
 import lt.lb.luceneindexandsearch.config.LuceneSearchService;
 import lt.lb.luceneindexandsearch.config.LuceneServicesResolver;
+import lt.lb.luceneindexandsearch.indexing.IdMap;
 import lt.lb.uncheckedutils.Checked;
 import lt.lb.uncheckedutils.concurrent.CheckedExecutor;
 import lt.lb.uncheckedutils.PassableException;
@@ -214,18 +215,6 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
         }
 
         writeIdsToIndex(updateOnAdd, folderName, idsToAdd);// TODO, multiple IDS can be present??? what
-    }
-
-    public static class IdMap<ID> {
-
-        public final Map<String, String> map;
-        public final ID id;
-
-        public IdMap(ID id, Map<String, String> map) {
-            this.map = Objects.requireNonNull(map);
-            this.id = Objects.requireNonNull(id);
-        }
-
     }
 
     public abstract Collection<IdMap<ID>> requestIndexableMaps(Property folderName, Map<ID, D> ids) throws IOException;

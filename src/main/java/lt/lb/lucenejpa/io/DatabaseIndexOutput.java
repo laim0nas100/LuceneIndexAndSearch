@@ -5,7 +5,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
-import lt.lb.lucenejpa.DirConfig;
+import lt.lb.luceneindexandsearch.splitting.DirConfig;
+import lt.lb.luceneindexandsearch.splitting.JpaDirConfig;
 import lt.lb.lucenejpa.Q;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,23 +25,24 @@ public class DatabaseIndexOutput extends OutputStreamIndexOutput {
     private static final Logger LOGGER = LogManager.getLogger(DatabaseIndexOutput.class);
 
     protected final String name;
-    protected final DirConfig config;
+    protected final JpaDirConfig config;
     @SuppressWarnings("unused")
     protected final IOContext context;
 
     protected ByteArrayOutputStream baos;
 
     protected long pos = 0;
-    public DatabaseIndexOutput(ByteArrayOutputStream output,final DirConfig directory, final String name, final IOContext context){
-        super(directory.getFolderName() + "/" + name, name,output,1024);
+
+    public DatabaseIndexOutput(ByteArrayOutputStream output, final JpaDirConfig directory, final String name, final IOContext context) {
+        super(directory.getFolderName() + "/" + name, name, output, 1024);
         this.config = directory;
         this.name = name;
         this.context = context;
         baos = output;
     }
-    
-    public DatabaseIndexOutput(final DirConfig directory, final String name, final IOContext context) {
-       this(new ByteArrayOutputStream(),directory,name,context);
+
+    public DatabaseIndexOutput(final JpaDirConfig directory, final String name, final IOContext context) {
+        this(new ByteArrayOutputStream(), directory, name, context);
     }
 
     @Override
@@ -52,21 +54,20 @@ public class DatabaseIndexOutput extends OutputStreamIndexOutput {
     public void save() throws IOException {
         Q.saveFileBytes(config, name, getContent().readAllBytes(), false, new Date());
     }
-    
+
     public InputStream savedContent;
 
     public InputStream getContent() throws IOException {
-        if(savedContent != null){
+        if (savedContent != null) {
             return savedContent;
         }
-            if(baos == null){
-                return null;
-            }
-            savedContent =  new ByteArrayInputStream(baos.toByteArray());
-        
+        if (baos == null) {
+            return null;
+        }
+        savedContent = new ByteArrayInputStream(baos.toByteArray());
+
         return savedContent;
     }
-
 
     @Override
     public String toString() {

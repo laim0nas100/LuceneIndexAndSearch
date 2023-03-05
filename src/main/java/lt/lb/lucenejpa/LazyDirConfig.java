@@ -1,15 +1,17 @@
 package lt.lb.lucenejpa;
 
+import lt.lb.luceneindexandsearch.splitting.KindConfig;
 import java.util.function.Supplier;
 import javax.persistence.EntityManager;
 import lt.lb.commons.jpa.EntityFacade;
+import lt.lb.luceneindexandsearch.splitting.JpaDirConfig;
 import lt.lb.uncheckedutils.concurrent.CheckedExecutor;
 
 /**
  *
  * @author laim0nas100
  */
-public class LazyDirConfig implements DirConfig {
+public class LazyDirConfig implements JpaDirConfig {
 
     protected String folderName;
     protected String fileKind;
@@ -23,15 +25,6 @@ public class LazyDirConfig implements DirConfig {
         return folderName;
     }
 
-    @Override
-    public String getFileKind() {
-        return fileKind;
-    }
-
-    @Override
-    public String getFileOrigin() {
-        return fileOrigin;
-    }
 
     @Override
     public EntityManager getEntityManager() {
@@ -63,13 +56,15 @@ public class LazyDirConfig implements DirConfig {
         this.entityFacadeSupplier = entityFacadeSupplier;
     }
     
-    @Override
-    public CheckedExecutor getLuceneExecutor(){
-       return this.luceneExecutorSuplier.get();
-    }
 
     public void setLuceneExecutorSuplier(Supplier<CheckedExecutor> luceneExecutorSuplier) {
         this.luceneExecutorSuplier = luceneExecutorSuplier;
+    }
+
+    @Override
+    public KindConfig getKindConfig() {
+        return new KindConfig.SimpleKindConfig(luceneExecutorSuplier.get(), fileKind, fileOrigin);
+        
     }
 
 }

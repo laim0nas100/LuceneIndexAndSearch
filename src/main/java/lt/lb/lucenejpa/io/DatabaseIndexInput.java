@@ -5,7 +5,8 @@ import java.io.EOFException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import lt.lb.lucenejpa.DirConfig;
+import lt.lb.luceneindexandsearch.splitting.DirConfig;
+import lt.lb.luceneindexandsearch.splitting.JpaDirConfig;
 import lt.lb.lucenejpa.Q;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,14 +18,14 @@ public class DatabaseIndexInput extends IndexInput {
 
     private static final Logger LOGGER = LogManager.getLogger(DatabaseIndexInput.class);
 
-    private final DirConfig directory;
+    private final JpaDirConfig directory;
     private final String name;
     private InputStream stream;
     private byte[] bytes;
     private long pos = 0;
 //    ByteBuffer buffer;
 
-    public DatabaseIndexInput(final DirConfig dir, final String name, final IOContext context) throws IOException {
+    public DatabaseIndexInput(final JpaDirConfig dir, final String name, final IOContext context) throws IOException {
         super(name);
         this.directory = dir;
         this.name = name;

@@ -1,11 +1,13 @@
 package lt.lb.lucenejpa;
 
+import lt.lb.luceneindexandsearch.splitting.DirConfig;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import lt.lb.commons.Java;
+import lt.lb.luceneindexandsearch.splitting.JpaDirConfig;
 import lt.lb.lucenejpa.io.DatabaseIndexInput;
 import lt.lb.lucenejpa.io.DatabaseIndexOutput;
 import lt.lb.lucenejpa.io.DatabaseReadWriteLockFactory;
@@ -26,10 +28,10 @@ public class SimpleJPADirectory extends Directory {
 
     protected AtomicLong nextTempFileCounter = new AtomicLong(Java.getCurrentTimeMillis());
 
-    protected final DirConfig conf;
+    protected final JpaDirConfig conf;
     protected final LockFactory lockFactory;
 
-    public SimpleJPADirectory(DirConfig conf) {
+    public SimpleJPADirectory(JpaDirConfig conf) {
         this.conf = conf;
         this.lockFactory = new DatabaseReadWriteLockFactory(conf);
     }

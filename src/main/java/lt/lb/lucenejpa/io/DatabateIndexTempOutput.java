@@ -2,10 +2,9 @@ package lt.lb.lucenejpa.io;
 
 import java.io.IOException;
 import java.util.Date;
-import lt.lb.lucenejpa.DirConfig;
+import lt.lb.luceneindexandsearch.splitting.JpaDirConfig;
 import lt.lb.lucenejpa.Q;
 import org.apache.lucene.store.IOContext;
-import org.apache.lucene.store.RAMDirectory;
 
 /**
  *
@@ -13,7 +12,7 @@ import org.apache.lucene.store.RAMDirectory;
  */
 public class DatabateIndexTempOutput extends DatabaseIndexOutput {
 
-    public DatabateIndexTempOutput(DirConfig directory, String name, IOContext context) {
+    public DatabateIndexTempOutput(JpaDirConfig directory, String name, IOContext context) {
         super(directory, name, context);
     }
 

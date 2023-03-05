@@ -6,7 +6,7 @@ import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.LongBuffer;
-import lt.lb.lucenejpa.DirConfig;
+import lt.lb.luceneindexandsearch.splitting.JpaDirConfig;
 import lt.lb.lucenejpa.Q;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.IndexInput;
@@ -49,7 +49,7 @@ public abstract class MyByteBufferIndexInput extends IndexInput implements Rando
         }
     }
 
-    public static MyByteBufferIndexInput newInstance(DirConfig config, String name) throws IOException {
+    public static MyByteBufferIndexInput newInstance(JpaDirConfig config, String name) throws IOException {
 
         byte[] bytes = Q.fileContentBytes(config, name).get();
         ByteBuffer[] buffs = new ByteBuffer[1];

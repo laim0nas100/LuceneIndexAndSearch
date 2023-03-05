@@ -9,7 +9,8 @@ import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.zip.CRC32;
-import lt.lb.lucenejpa.DirConfig;
+import lt.lb.luceneindexandsearch.splitting.DirConfig;
+import lt.lb.luceneindexandsearch.splitting.JpaDirConfig;
 import lt.lb.lucenejpa.Q;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
@@ -28,10 +29,10 @@ public class FlushBBFileEntry {
     private Supplier<FlushByteBuffersDataOutput> bbOutputSupplier;
     public final boolean temp;
 
-    private final DirConfig conf;
+    private final JpaDirConfig conf;
     public volatile Date lastChange = new Date();
 
-    public FlushBBFileEntry(DirConfig conf, Supplier<FlushByteBuffersDataOutput> bbSupplier, String name, boolean temp, boolean lazy) {
+    public FlushBBFileEntry(JpaDirConfig conf, Supplier<FlushByteBuffersDataOutput> bbSupplier, String name, boolean temp, boolean lazy) {
         this.fileName = name;
         this.temp = temp;
         this.conf = Objects.requireNonNull(conf);

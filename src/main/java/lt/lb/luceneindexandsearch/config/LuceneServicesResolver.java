@@ -48,7 +48,7 @@ public interface LuceneServicesResolver<Property> {
         return () -> readingConfig;
     }
 
-    public default Tuple<Collection<Document>, BatchRunSummary> fastThreadedSearch(Query query) throws Exception {
+    public default Tuple<Collection<Document>, BatchRunSummary> fastThreadedSearch(Query query) throws IOException {
         return fastThreadedSearch(new FastExecutor(Java.getAvailableProcessors()), query, null);
     }
 

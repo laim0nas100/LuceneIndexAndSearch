@@ -1,8 +1,8 @@
 package lt.lb.lucenejpa;
 
+import lt.lb.luceneindexandsearch.splitting.KindConfig;
+import lt.lb.luceneindexandsearch.splitting.DirConfig;
 import java.util.Objects;
-import javax.persistence.EntityManager;
-import lt.lb.commons.jpa.EntityFacade;
 import lt.lb.uncheckedutils.concurrent.CheckedExecutor;
 
 /**
@@ -19,7 +19,6 @@ public class Forwarding {
         public default CheckedExecutor getLuceneExecutor() {
             return getDelegate().getLuceneExecutor();
         }
-
         
         @Override
         public default String getConfigID() {
@@ -36,55 +35,8 @@ public class Forwarding {
             return getDelegate().getFileOrigin();
         }
 
-        @Override
-        public default EntityFacade getEntityFacade() {
-            return getDelegate().getEntityFacade();
-        }
-
-        @Override
-        public default EntityManager getEntityManager() {
-            return getDelegate().getEntityManager();
-        }
-
-
-        @Override
-        public default long getSecondsTimeout() {
-            return getDelegate().getSecondsTimeout();
-        }
-
     }
 
-    public static interface ForwardingDirConfig extends ForwardingKindConfig, DirConfig {
-
-        @Override
-        public DirConfig getDelegate();
-
-        @Override
-        public default String getConfigID() {
-            return getDelegate().getConfigID();
-        }
-
-        @Override
-        public default String getFolderName() {
-            return getDelegate().getFolderName();
-        }
-
-        @Override
-        public default String tempFileName(String name) {
-            return getDelegate().tempFileName(name);
-        }
-
-        @Override
-        public default String getFullName(String name) {
-            return getDelegate().getFullName(name);
-        }
-
-        @Override
-        public default boolean bufferedJPAStreams() {
-            return getDelegate().bufferedJPAStreams();
-        }
-
-    }
 
     public static class DirConfigFromKind implements DirConfig, ForwardingKindConfig {
 
@@ -116,8 +68,11 @@ public class Forwarding {
         public String getConfigID() {
             return DirConfig.super.getConfigID();
         }
-        
-        
+
+        @Override
+        public KindConfig getKindConfig() {
+            return getDelegate();
+        }
 
     }
 }

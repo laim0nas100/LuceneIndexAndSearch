@@ -1,5 +1,7 @@
 package lt.lb.lucenejpa;
 
+import lt.lb.luceneindexandsearch.splitting.KindConfig;
+import lt.lb.luceneindexandsearch.splitting.JpaDirConfig;
 import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -31,21 +33,21 @@ public class Q {
 
     private static final Logger LOGGER = LogManager.getLogger(Q.class);
 
-    private static JpaQueryDecor<LuceneFile, LuceneFile> baseKindDecor(KindConfig conf) {
+    private static JpaQueryDecor<LuceneFile, LuceneFile> baseKindDecor(JpaDirConfig conf) {
         Objects.requireNonNull(conf);
         return JpaQueryDecor.of(LuceneFile.class)
                 .withPred(equal(LuceneFile_.fileOrigin, conf.getFileOrigin()))
                 .withPred(equal(LuceneFile_.fileKind, conf.getFileKind()));
     }
 
-    private static JpaQueryDecor<LuceneFile, LuceneFile> baseDecor(DirConfig conf) {
+    private static JpaQueryDecor<LuceneFile, LuceneFile> baseDecor(JpaDirConfig conf) {
         Objects.requireNonNull(conf);
         return baseKindDecor(conf)
                 .withPred(equal(LuceneFile_.folderName, conf.getFolderName()))
                 .setLockMode(LockModeType.NONE);
     }
 
-    private static JpaQueryDecor<LuceneFile, LuceneFile> baseDecor(DirConfig conf, String fileName) {
+    private static JpaQueryDecor<LuceneFile, LuceneFile> baseDecor(JpaDirConfig conf, String fileName) {
         Objects.requireNonNull(conf);
         Objects.requireNonNull(fileName);
         return baseDecor(conf)
@@ -65,7 +67,7 @@ public class Q {
 
     }
 
-    public static void transactionRun(KindConfig conf, UncheckedConsumer<EntityManager> run) throws IOException {
+    public static void transactionRun(JpaDirConfig conf, UncheckedConsumer<EntityManager> run) throws IOException {
 
         conf.getLuceneExecutor().execute(() -> {
             run.accept(conf.getEntityManager());
@@ -74,7 +76,7 @@ public class Q {
         }).throwIfErrorUnwrapping(IOException.class);
     }
 
-    public static <T> T transactionCall(KindConfig conf, UncheckedFunction<EntityManager, T> call) throws IOException {
+    public static <T> T transactionCall(JpaDirConfig conf, UncheckedFunction<EntityManager, T> call) throws IOException {
         return conf.getLuceneExecutor().call(() -> {
 
             return call.apply(conf.getEntityManager());
@@ -83,7 +85,7 @@ public class Q {
         }).throwIfErrorUnwrapping(IOException.class).orNull();
     }
 
-    public static List<LuceneFile> listAllFiles(DirConfig conf) throws IOException {
+    public static List<LuceneFile> listAllFiles(JpaDirConfig conf) throws IOException {
         LOGGER.trace("listAll({})", conf);
         return transactionCall(conf, em -> {
             return baseDecor(conf)
@@ -91,7 +93,7 @@ public class Q {
         });
     }
 
-    public static IdName[] listAllIdsName(DirConfig conf) throws IOException {
+    public static IdName[] listAllIdsName(JpaDirConfig conf) throws IOException {
         LOGGER.trace("listAllIdsName({})", conf);
         return transactionCall(conf, em -> {
 
@@ -102,7 +104,7 @@ public class Q {
         });
     }
 
-    public static String[] listAll(DirConfig conf) throws IOException {
+    public static String[] listAll(JpaDirConfig conf) throws IOException {
         LOGGER.trace("listAll({})", conf);
         return transactionCall(conf, em -> {
             return baseDecor(conf)
@@ -114,7 +116,7 @@ public class Q {
         });
     }
 
-    public static String[] listDistinctFolders(KindConfig conf) throws IOException {
+    public static String[] listDistinctFolders(JpaDirConfig conf) throws IOException {
         LOGGER.trace("listDistinctFolders({})", conf);
         return transactionCall(conf, em -> {
             return baseKindDecor(conf)
@@ -126,7 +128,7 @@ public class Q {
         });
     }
 
-    public static Set<String> listTemp(DirConfig conf) throws IOException {
+    public static Set<String> listTemp(JpaDirConfig conf) throws IOException {
         LOGGER.trace("listTemp({})", conf);
         return transactionCall(conf, em -> {
             return baseDecor(conf)
@@ -137,7 +139,7 @@ public class Q {
         });
     }
 
-    public static SafeOpt<Long> fileId(DirConfig conf, String fileName) throws IOException {
+    public static SafeOpt<Long> fileId(JpaDirConfig conf, String fileName) throws IOException {
         LOGGER.trace("listTemp({},{})", conf, fileName);
         return transactionCall(conf, em -> {
             return baseDecor(conf, fileName)
@@ -148,7 +150,7 @@ public class Q {
 
     }
 
-    public static boolean deleteFile(DirConfig conf, String fileName) throws IOException {
+    public static boolean deleteFile(JpaDirConfig conf, String fileName) throws IOException {
         LOGGER.trace("deleteFile({},{})", conf, fileName);
         Objects.requireNonNull(conf);
         Objects.requireNonNull(fileName);
@@ -166,7 +168,7 @@ public class Q {
         });
     }
 
-    public static boolean existsFile(DirConfig conf, String fileName) throws IOException {
+    public static boolean existsFile(JpaDirConfig conf, String fileName) throws IOException {
         LOGGER.trace("existsFile({},{})", conf, fileName);
         Objects.requireNonNull(conf);
         Objects.requireNonNull(fileName);
@@ -179,7 +181,7 @@ public class Q {
 
     }
 
-    public static boolean renameFile(DirConfig conf, String src, String dst) throws IOException {
+    public static boolean renameFile(JpaDirConfig conf, String src, String dst) throws IOException {
         LOGGER.trace("renameFile({},{},{})", conf, src, dst);
         Objects.requireNonNull(conf);
         Objects.requireNonNull(src);
@@ -204,7 +206,7 @@ public class Q {
 
     }
 
-    public static long fileLength(DirConfig conf, String fileName) throws IOException {
+    public static long fileLength(JpaDirConfig conf, String fileName) throws IOException {
         LOGGER.trace("fileLength({},{})", conf, fileName);
         Objects.requireNonNull(conf);
         Objects.requireNonNull(fileName);
@@ -217,7 +219,7 @@ public class Q {
         });
     }
 
-    public static SafeOpt<Date> fileLastMofified(DirConfig conf, String fileName) throws IOException {
+    public static SafeOpt<Date> fileLastMofified(JpaDirConfig conf, String fileName) throws IOException {
         LOGGER.trace("fileLastMofified({},{})", conf, fileName);
         Objects.requireNonNull(conf);
         Objects.requireNonNull(fileName);
@@ -229,7 +231,7 @@ public class Q {
         });
     }
 
-    public static SafeOpt<Date> fileDirectoryLastMofified(DirConfig conf) throws IOException {
+    public static SafeOpt<Date> fileDirectoryLastMofified(JpaDirConfig conf) throws IOException {
         LOGGER.trace("fileDirectoryLastMofified({)", conf);
         Objects.requireNonNull(conf);
         return transactionCall(conf, em -> {
@@ -242,7 +244,7 @@ public class Q {
         });
     }
 
-    public static SafeOpt<InputStream> fileContent(DirConfig conf, String fileName) throws IOException {
+    public static SafeOpt<InputStream> fileContent(JpaDirConfig conf, String fileName) throws IOException {
         LOGGER.trace("fileContent({},{})", conf, fileName);
         Objects.requireNonNull(conf);
         Objects.requireNonNull(fileName);
@@ -267,7 +269,7 @@ public class Q {
         });
     }
 
-    public static SafeOpt<byte[]> fileContentBytes(DirConfig conf, String fileName) throws IOException {
+    public static SafeOpt<byte[]> fileContentBytes(JpaDirConfig conf, String fileName) throws IOException {
         LOGGER.trace("fileContent({},{})", conf, fileName);
         Objects.requireNonNull(conf);
         Objects.requireNonNull(fileName);
@@ -282,7 +284,7 @@ public class Q {
         });
     }
 
-    public static boolean saveFile(DirConfig conf, String fileName, InputStream stream, long length, boolean temp, Date date) throws IOException {
+    public static boolean saveFile(JpaDirConfig conf, String fileName, InputStream stream, long length, boolean temp, Date date) throws IOException {
         LOGGER.trace("saveFile({},{})", conf, fileName);
 
         return transactionCall(conf, em -> {
@@ -327,7 +329,7 @@ public class Q {
 
     }
 
-    public static boolean saveFileBytes(DirConfig conf, String fileName, byte[] content, boolean temp, Date date) throws IOException {
+    public static boolean saveFileBytes(JpaDirConfig conf, String fileName, byte[] content, boolean temp, Date date) throws IOException {
         LOGGER.trace("saveFileBytes({},{})", conf, fileName);
         ByteArrayInputStream stream = new ByteArrayInputStream(content);
         ForwardingInputStream extInput = new ForwardingInputStream() {

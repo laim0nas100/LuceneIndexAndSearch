@@ -1,11 +1,10 @@
 package lt.lb.lucenejpa;
 
+import lt.lb.luceneindexandsearch.splitting.KindConfig;
+import lt.lb.luceneindexandsearch.splitting.DirConfig;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
-import javax.persistence.EntityManager;
-import lt.lb.commons.jpa.EntityFacade;
-import lt.lb.lucenejpa.Forwarding.DirConfigFromKind;
 import lt.lb.uncheckedutils.concurrent.CheckedExecutor;
 import org.apache.lucene.util.IOUtils;
 
@@ -13,7 +12,7 @@ import org.apache.lucene.util.IOUtils;
  *
  * @author laim0nas100
  */
-public class NestedFolderDirConfigFactory implements IOUtils.IOFunction<String, DirConfig>, KindConfig {
+public abstract class NestedFolderDirConfigFactory<T extends DirConfig> implements IOUtils.IOFunction<String, T>, KindConfig {
 
     protected KindConfig mainKind;
 
@@ -21,22 +20,17 @@ public class NestedFolderDirConfigFactory implements IOUtils.IOFunction<String, 
         this.mainKind = Objects.requireNonNull(mainKind);
     }
 
-    protected ConcurrentHashMap<String, DirConfig> nestedMap = new ConcurrentHashMap<>();
+    protected ConcurrentHashMap<String, T> nestedMap = new ConcurrentHashMap<>();
 
+    protected abstract T makeDirConfig(KindConfig kind, String folderName);
+    
     @Override
-    public DirConfig apply(final String folderName) throws IOException {
+    public T apply(final String folderName) throws IOException {
         return nestedMap.computeIfAbsent(folderName, name -> {
-            return new DirConfigFromKind(mainKind,name);
+            return makeDirConfig(mainKind, folderName);
         });
 
     }
-
-
-    @Override
-    public long getSecondsTimeout() {
-        return mainKind.getSecondsTimeout();
-    }
-
 
     @Override
     public String getConfigID() {
@@ -51,16 +45,6 @@ public class NestedFolderDirConfigFactory implements IOUtils.IOFunction<String, 
     @Override
     public String getFileOrigin() {
         return mainKind.getFileOrigin();
-    }
-
-    @Override
-    public EntityManager getEntityManager() {
-        return mainKind.getEntityManager();
-    }
-
-    @Override
-    public EntityFacade getEntityFacade() {
-        return mainKind.getEntityFacade();
     }
 
     @Override

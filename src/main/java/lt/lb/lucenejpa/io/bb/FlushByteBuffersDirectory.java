@@ -19,7 +19,8 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import lt.lb.commons.Java;
-import lt.lb.lucenejpa.DirConfig;
+import lt.lb.luceneindexandsearch.splitting.DirConfig;
+import lt.lb.luceneindexandsearch.splitting.JpaDirConfig;
 import lt.lb.lucenejpa.LastModifiedAware;
 import lt.lb.readablecompare.Compare;
 import lt.lb.readablecompare.CompareOperator;
@@ -122,19 +123,20 @@ public class FlushByteBuffersDirectory extends BaseDirectory implements LastModi
      */
     private final Supplier<FlushByteBuffersDataOutput> bbOutputSupplier;
 
-    public final DirConfig dirConfig;
+    public final JpaDirConfig dirConfig;
 
     private volatile Date lastChange;
 
-    public FlushByteBuffersDirectory(DirConfig dirConfig) {
+    public FlushByteBuffersDirectory(JpaDirConfig dirConfig) {
         this(dirConfig, new SingleInstanceLockFactory());
     }
 
-    public FlushByteBuffersDirectory(DirConfig dirConfig, LockFactory lockFactory) {
+    public FlushByteBuffersDirectory(JpaDirConfig dirConfig, LockFactory lockFactory) {
         this(dirConfig, lockFactory, FlushByteBuffersDataOutput::new, OUTPUT_AS_MANY_BUFFERS);
     }
 
-    public FlushByteBuffersDirectory(DirConfig dirConfig,
+    public FlushByteBuffersDirectory(
+            JpaDirConfig dirConfig,
             LockFactory factory,
             Supplier<FlushByteBuffersDataOutput> bbOutputSupplier,
             BiFunction<String, FlushByteBuffersDataOutput, IndexInput> outputToInput) {
@@ -183,7 +185,7 @@ public class FlushByteBuffersDirectory extends BaseDirectory implements LastModi
         if (files.putIfAbsent(name, e) != null) {
             throw new FileAlreadyExistsException("File already exists: " + name);
         }
-       
+
         return e.createOutput(outputToInput);
     }
 
