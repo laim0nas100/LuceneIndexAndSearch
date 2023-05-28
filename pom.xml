@@ -11,7 +11,7 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <gendir>${project.basedir}/src/main/java/</gendir>
         <lucene.ver>8.8.1</lucene.ver>
-        <tika.ver>2.1.0</tika.ver>
+        <tika.ver>2.8.0</tika.ver>
         <lb.dir>com.github.laim0nas100.Commons</lb.dir>
         <lb.ver>2023.04v1</lb.ver>
         
