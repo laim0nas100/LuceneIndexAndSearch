@@ -9,12 +9,14 @@ import java.util.Optional;
  */
 public interface LuceneCachedMap<ID, D extends Comparable<D>> {
 
-    public Optional<D> getLastChanged();
+    Optional<D> getLastChanged();
 
-    public Optional<ID> getLastChangedID();
+    Optional<ID> getLastChangedID();
 
-    public void recalculate();
+    void recalculate();
 
-    public Map<ID, D> getMap();
+    Map<ID, D> getMap();
+    
+    void updateWith(Map<ID,D> map);
 
 }

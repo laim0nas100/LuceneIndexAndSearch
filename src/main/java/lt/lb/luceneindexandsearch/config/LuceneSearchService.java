@@ -53,7 +53,7 @@ public interface LuceneSearchService {
     }
 
     public default Query makeMainIdQuery(String searchStr) {
-        return new TermQuery(maidIdTerm(searchStr));
+        return new TermQuery(mainIdTerm(searchStr));
     }
 
     public default String mainIdField() {
@@ -62,7 +62,7 @@ public interface LuceneSearchService {
         return mainIdFieldName;
     }
 
-    public default Term maidIdTerm(String searchString) {
+    public default Term mainIdTerm(String searchString) {
         return new Term(mainIdField(), searchString);
     }
 

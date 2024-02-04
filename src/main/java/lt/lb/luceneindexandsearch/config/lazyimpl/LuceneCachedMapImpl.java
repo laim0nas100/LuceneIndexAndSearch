@@ -41,6 +41,12 @@ public class LuceneCachedMapImpl<ID, D extends Comparable<D>> implements LuceneC
         }
 
     }
+    
+    @Override
+    public void updateWith(Map<ID,D> map){
+        map.putAll(map);
+        recalculate();
+    }
 
     @Override
     public Optional<D> getLastChanged() {

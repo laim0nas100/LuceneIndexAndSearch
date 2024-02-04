@@ -127,7 +127,7 @@ public abstract class LazyLuceneControlDate<ID> extends LazyLuceneIndexControl<S
             dates.add(SafeOpt.of(startingFolder).flatMap(this::parseDate).throwIfErrorAsNested().get());
         }
         Date now = new Date();
-        int times = 1000000;
+        int times = 1_000_000;
         while (dates.getLast().before(now)) {
             times--;
             Date last = dates.getLast();
@@ -135,7 +135,7 @@ public abstract class LazyLuceneControlDate<ID> extends LazyLuceneIndexControl<S
             Date incremented = incrementDate(last);
             dates.addLast(incremented);
             if (times < 0) {
-                throw new IllegalStateException("Date increment exceeded a limit, probably an oveflow");
+                throw new IllegalStateException("Date increment exceeded a limit, check your date increments");
             }
         }
     }

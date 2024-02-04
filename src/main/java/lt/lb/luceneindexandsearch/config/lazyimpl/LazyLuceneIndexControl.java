@@ -12,9 +12,9 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import lt.lb.commons.Lazy;
 import lt.lb.commons.containers.collections.CollectionOp;
+import lt.lb.commons.containers.collections.ImmutableCollections;
 import lt.lb.commons.containers.values.LongValue;
 import lt.lb.commons.containers.values.ThreadLocalValue;
 import lt.lb.commons.iteration.For;
@@ -67,6 +67,8 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
     protected Supplier<Map<Property, LuceneCachedMap<ID, D>>> cachingStrategy;
     protected boolean callGC = true;
     protected boolean updateOnAdd = true;
+    protected boolean hustleMode = false;
+    protected boolean skipVersionCheck = true;
 
     public LazyLuceneIndexControl(Supplier<Map<Property, LuceneCachedMap<ID, D>>> cachingStrategy) {
         this.cachingStrategy = Objects.requireNonNull(cachingStrategy);
@@ -207,14 +209,23 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
 
     @Override
     public void updateIndexAddition(Property folderName) throws IOException {
-        Map<ID, D> idsToAdd = getAccessExecutor().call(() -> {
-            return idsToAdd(folderName, getCurrentIDs(folderName));
-        }).throwIfErrorUnwrapping(IOException.class).orElseGet(HashMap::new);
-        if (idsToAdd.isEmpty()) {
-            return;
-        }
+        getLuceneExecutor().execute(() -> {
+            for (int loop = 0; loop < 1000; loop++) {
 
-        writeIdsToIndex(updateOnAdd, folderName, idsToAdd);// TODO, multiple IDS can be present??? what
+                Map<ID, D> idsToAdd = getAccessExecutor().call(() -> {
+                    return idsToAdd(folderName, getCurrentIDs(folderName));
+                }).throwIfErrorUnwrapping(IOException.class).orElseGet(HashMap::new);
+                if (idsToAdd.isEmpty()) {// no change, exit
+                    return;
+                }
+
+                writeIdsToIndex(updateOnAdd, folderName, idsToAdd);// TODO, multiple IDS can be present??? what
+                getLazyCache(folderName).updateWith(idsToAdd);
+                if (!hustleMode) {
+                    return;
+                }
+            }
+        }).throwIfErrorUnwrapping(IOException.class);
     }
 
     public abstract Collection<IdMap<ID>> requestIndexableMaps(Property folderName, Map<ID, D> ids) throws IOException;
@@ -243,33 +254,54 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
     @Override
     public void updateIndexVersion(Property folderName) throws IOException {
 
+        if (skipVersionCheck) {
+            return;
+        }
         getLuceneExecutor().execute(() -> {
-            LuceneServicesResolver<Property> resolver = getLuceneServicesResolver();
-            LuceneSearchService search = resolver.getSearch(folderName);
+            for (int loop = 0; loop < 1000; loop++) {
+                LuceneServicesResolver<Property> resolver = getLuceneServicesResolver();
+                LuceneSearchService search = resolver.getSearch(folderName);
 
-            String indexableItemVersion = Objects.requireNonNull(getIndexableItemVersion(folderName));
-            String indexableItemVersionFieldName = Objects.requireNonNull(getIndexableItemVersionFieldName(folderName));
-            TermQuery versionQuery = new TermQuery(new Term(indexableItemVersionFieldName, indexableItemVersion));
-            BooleanQuery notContainsQuery = new BooleanQuery.Builder().add(versionQuery, BooleanClause.Occur.MUST_NOT).build();
-            Stream<Document> differentVersionDocuments = search.pagingSearch(notContainsQuery, fieldsToLoad(folderName));
+                String indexableItemVersion = Objects.requireNonNull(getIndexableItemVersion(folderName));
+                String indexableItemVersionFieldName = Objects.requireNonNull(getIndexableItemVersionFieldName(folderName));
+                TermQuery versionQuery = new TermQuery(new Term(indexableItemVersionFieldName, indexableItemVersion));
+                BooleanQuery notContainsQuery = new BooleanQuery.Builder().add(versionQuery, BooleanClause.Occur.MUST_NOT).build();
 
-            Map<ID, D> idsToChange = differentVersionDocuments.map(doc -> documentInfoRetrieve(doc))
-                    .collect(IdAndChanged.collector());
-            writeIdsToIndex(true, folderName, idsToChange);
+                Map<ID, D> idsToChange = search.pagingSearch(notContainsQuery, fieldsToLoad(folderName))
+                        .map(doc -> documentInfoRetrieve(doc))
+                        .collect(IdAndChanged.collector());
+                if (idsToChange.isEmpty()) {
+                    return;
+                }
+                writeIdsToIndex(true, folderName, idsToChange);
+                getLazyCache(folderName).updateWith(idsToChange);
+                if (!hustleMode) {
+                    return;
+                }
+            }
+
         }).throwIfErrorUnwrapping(IOException.class);
 
     }
 
     @Override
     public void updateIndexChange(Property folderName) throws IOException {
-        Map<ID, D> idsToChange = getAccessExecutor().call(() -> {
-            return idsToChange(folderName, getCurrentIDs(folderName));
-        }).throwIfErrorUnwrapping(IOException.class).orElseGet(HashMap::new);
-        if (idsToChange.isEmpty()) {
-            return;
-        }
+        getLuceneExecutor().execute(() -> {
+            for (int loop = 0; loop < 1000; loop++) {
+                Map<ID, D> idsToChange = getAccessExecutor().call(() -> {
+                    return idsToChange(folderName, getCurrentIDs(folderName));
+                }).throwIfErrorUnwrapping(IOException.class).orElse(ImmutableCollections.mapOf());
+                if (idsToChange.isEmpty()) {
+                    return;
+                }
 
-        writeIdsToIndex(true, folderName, idsToChange);
+                writeIdsToIndex(true, folderName, idsToChange);
+                getLazyCache(folderName).updateWith(idsToChange);
+                if (!hustleMode) {
+                    return;
+                }
+            }
+        }).throwIfErrorUnwrapping(IOException.class);
     }
 
     public void writeIdsToIndex(boolean update, Property folderName, Map<ID, D> ids) throws IOException {
@@ -291,8 +323,8 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
                         if (update) {
                             for (IdMap<ID> idMap : maps) {
                                 Document doc = fieldsConfig.createDocument(idMap.map);
-                                Term maidIdTerm = search.maidIdTerm(mainIdToString(idMap.id));
-                                indexWriter.updateDocument(maidIdTerm, doc);
+                                Term mainIdTerm = search.mainIdTerm(mainIdToString(idMap.id));
+                                indexWriter.updateDocument(mainIdTerm, doc);
                             }
                         } else {
                             List<Document> docs = maps.stream().map(m -> fieldsConfig.createDocument(m.map)).collect(Collectors.toList());
