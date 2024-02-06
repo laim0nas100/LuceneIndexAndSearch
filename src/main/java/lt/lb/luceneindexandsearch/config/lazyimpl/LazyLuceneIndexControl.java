@@ -67,7 +67,7 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
     protected Supplier<Map<Property, LuceneCachedMap<ID, D>>> cachingStrategy;
     protected boolean callGC = true;
     protected boolean updateOnAdd = true;
-    protected boolean hustleMode = false;
+    protected int repetitions = 1;
     protected boolean skipVersionCheck = true;
 
     public LazyLuceneIndexControl(Supplier<Map<Property, LuceneCachedMap<ID, D>>> cachingStrategy) {
@@ -210,7 +210,7 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
     @Override
     public void updateIndexAddition(Property folderName) throws IOException {
         getLuceneExecutor().execute(() -> {
-            for (int loop = 0; loop < 1000; loop++) {
+            for (int loop = 0; loop < Math.max(repetitions, 1); loop++) {
 
                 Map<ID, D> idsToAdd = getAccessExecutor().call(() -> {
                     return idsToAdd(folderName, getCurrentIDs(folderName));
@@ -221,9 +221,6 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
 
                 writeIdsToIndex(updateOnAdd, folderName, idsToAdd);// TODO, multiple IDS can be present??? what
                 getLazyCache(folderName).updateWith(idsToAdd);
-                if (!hustleMode) {
-                    return;
-                }
             }
         }).throwIfErrorUnwrapping(IOException.class);
     }
@@ -258,7 +255,7 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
             return;
         }
         getLuceneExecutor().execute(() -> {
-            for (int loop = 0; loop < 1000; loop++) {
+            for (int loop = 0; loop < Math.max(repetitions, 1); loop++) {
                 LuceneServicesResolver<Property> resolver = getLuceneServicesResolver();
                 LuceneSearchService search = resolver.getSearch(folderName);
 
@@ -275,9 +272,6 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
                 }
                 writeIdsToIndex(true, folderName, idsToChange);
                 getLazyCache(folderName).updateWith(idsToChange);
-                if (!hustleMode) {
-                    return;
-                }
             }
 
         }).throwIfErrorUnwrapping(IOException.class);
@@ -287,7 +281,7 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
     @Override
     public void updateIndexChange(Property folderName) throws IOException {
         getLuceneExecutor().execute(() -> {
-            for (int loop = 0; loop < 1000; loop++) {
+            for (int loop = 0; loop < Math.max(repetitions, 1); loop++) {
                 Map<ID, D> idsToChange = getAccessExecutor().call(() -> {
                     return idsToChange(folderName, getCurrentIDs(folderName));
                 }).throwIfErrorUnwrapping(IOException.class).orElse(ImmutableCollections.mapOf());
@@ -297,9 +291,6 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
 
                 writeIdsToIndex(true, folderName, idsToChange);
                 getLazyCache(folderName).updateWith(idsToChange);
-                if (!hustleMode) {
-                    return;
-                }
             }
         }).throwIfErrorUnwrapping(IOException.class);
     }
