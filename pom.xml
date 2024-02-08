@@ -12,45 +12,44 @@
         <gendir>${project.basedir}/src/main/java/</gendir>
         <lucene.ver>8.8.1</lucene.ver>
         <tika.ver>2.8.0</tika.ver>
-        <lb.dir>com.github.laim0nas100.Commons</lb.dir>
-        <lb.ver>2023.05v1</lb.ver>
+        <commonslb.dir>com.github.laim0nas100.Commons</commonslb.dir>
+        <commonslb.ver>2024.02v1</commonslb.ver>
         
-<!--         <lb.dir>lt.lb.Commons</lb.dir>
-        <lb.ver>local-jar</lb.ver>-->
-        
+<!--         <commonslb.dir>lt.lb.Commons</commonslb.dir>
+        <commonslb.ver>local-jar</commonslb.ver>-->
     </properties>
     
     <dependencies>
         
         <dependency>
-            <groupId>${lb.dir}</groupId>
+            <groupId>${commonslb.dir}</groupId>
             <artifactId>commonslb-caching</artifactId>
-            <version>${lb.ver}</version>
+            <version>${commonslb.ver}</version>
         </dependency>
         
         <dependency>
-            <groupId>${lb.dir}</groupId>
+            <groupId>${commonslb.dir}</groupId>
             <artifactId>commonslb-reflection</artifactId>
-            <version>${lb.ver}</version>
+            <version>${commonslb.ver}</version>
         </dependency>
         
         <dependency>
-            <groupId>${lb.dir}</groupId>
+            <groupId>${commonslb.dir}</groupId>
             <artifactId>commonslb-log</artifactId>
-            <version>${lb.ver}</version>
+            <version>${commonslb.ver}</version>
             <scope>test</scope>
         </dependency>
         
         <dependency>
-            <groupId>${lb.dir}</groupId>
+            <groupId>${commonslb.dir}</groupId>
             <artifactId>commonslb-jpa</artifactId>
-            <version>${lb.ver}</version>
+            <version>${commonslb.ver}</version>
         </dependency>
         
         <dependency>
-            <groupId>${lb.dir}</groupId>
+            <groupId>${commonslb.dir}</groupId>
             <artifactId>commonslb-io</artifactId>
-            <version>${lb.ver}</version>
+            <version>${commonslb.ver}</version>
         </dependency>
         
         <!-- https://mvnrepository.com/artifact/org.apache.lucene/lucene-core -->
