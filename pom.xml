@@ -13,9 +13,9 @@
         <lucene.ver>8.8.1</lucene.ver>
         <tika.ver>2.8.0</tika.ver>
         <commonslb.dir>com.github.laim0nas100.Commons</commonslb.dir>
-        <commonslb.ver>2024.03v1</commonslb.ver>
+        <commonslb.ver>2024.04v3</commonslb.ver>
         
-<!--         <commonslb.dir>lt.lb.Commons</commonslb.dir>
+<!--        <commonslb.dir>lt.lb.Commons</commonslb.dir>
         <commonslb.ver>local-jar</commonslb.ver>-->
     </properties>
     
