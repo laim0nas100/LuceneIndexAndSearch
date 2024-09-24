@@ -232,6 +232,12 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
             updateIndexChange(key);
         }
     }
+    
+    public default void updateIndexVersionsExplicit() throws IOException{
+        for (Property prop : getNestedKeys()) {
+            updateIndexVersionExplicit(prop);
+        }
+    }
 
     public default void updateIndexVersions() throws IOException {
         for (Property prop : getNestedKeys()) {
@@ -247,6 +253,8 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
      * @throws java.io.IOException
      */
     public void updateIndexVersion(Property folderName) throws IOException;
+    
+    public void updateIndexVersionExplicit(Property folderName) throws IOException;
 
     public default void periodicMaintenance() throws IOException {
 

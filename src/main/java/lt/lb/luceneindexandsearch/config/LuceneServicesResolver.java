@@ -2,11 +2,13 @@ package lt.lb.luceneindexandsearch.config;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 import lt.lb.commons.Java;
 import lt.lb.commons.containers.tuples.Tuple;
 import lt.lb.commons.threads.executors.FastExecutor;
@@ -60,7 +62,8 @@ public interface LuceneServicesResolver<Property> {
 
             LuceneSearchService search = getSearch(prop);
             batcher.execute(() -> {
-                search.pagingSearch(query, fields).forEach(docs::add);
+                List<Document> collect = search.pagingSearch(query, fields).collect(Collectors.toList());
+                docs.addAll(collect);
                 return null;
             });
 

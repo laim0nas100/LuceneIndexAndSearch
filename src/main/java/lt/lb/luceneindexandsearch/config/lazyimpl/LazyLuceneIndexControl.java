@@ -242,13 +242,6 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
     protected abstract String getIndexableItemVersionFieldName(Property folderName);
 
     @Override
-    public void updateIndexVersions() throws IOException {
-        for (Property prop : getNestedKeys()) {
-            updateIndexVersion(prop);
-        }
-    }
-
-    @Override
     public void updateIndexVersion(Property folderName) throws IOException {
 
         if (skipVersionCheck) {
@@ -417,6 +410,13 @@ public abstract class LazyLuceneIndexControl<Property, ID, D extends Comparable<
     public void updateIndexesCleanup() throws IOException {
         getLuceneExecutor().execute(() -> {
             LuceneIndexControl.super.updateIndexesCleanup();
+        }).throwIfErrorUnwrapping(IOException.class);
+    }
+
+    @Override
+    public void updateIndexVersions() throws IOException {
+        getLuceneExecutor().execute(() -> {
+            LuceneIndexControl.super.updateIndexVersions();
         }).throwIfErrorUnwrapping(IOException.class);
     }
 
