@@ -148,7 +148,7 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
     public default Long indexedCount() throws IOException {
         Long sum = 0L;
         for (Property prop : getNestedKeys()) {
-            sum += indexedCount(prop);
+            sum += Math.max(indexedCount(prop), 0);
         }
         return sum;
     }
@@ -158,7 +158,7 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
     public default Long indexableCount() throws IOException {
         Long sum = 0L;
         for (Property prop : getNestedKeys()) {
-            sum += indexableCount(prop);
+            sum += Math.max(indexableCount(prop), 0);
         }
         return sum;
     }
@@ -232,8 +232,8 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
             updateIndexChange(key);
         }
     }
-    
-    public default void updateIndexVersionsExplicit() throws IOException{
+
+    public default void updateIndexVersionsExplicit() throws IOException {
         for (Property prop : getNestedKeys()) {
             updateIndexVersionExplicit(prop);
         }
@@ -253,7 +253,7 @@ public interface LuceneIndexControl<Property, ID, D extends Comparable<D>> {
      * @throws java.io.IOException
      */
     public void updateIndexVersion(Property folderName) throws IOException;
-    
+
     public void updateIndexVersionExplicit(Property folderName) throws IOException;
 
     public default void periodicMaintenance() throws IOException {
