@@ -123,20 +123,20 @@ public abstract class LazyLuceneControlDate<ID> extends LazyLuceneIndexControl<S
         LinkedList<Date> dates = getDates();
 
         if (dates.isEmpty()) {
-            resolveDirectory(startingFolder);
             dates.add(SafeOpt.of(startingFolder).flatMap(this::parseDate).throwIfErrorAsNested().get());
         }
-        Date now = new Date();
+        Date now = incrementDate(new Date()); // add one extra
         int times = 1_000_000;
         while (dates.getLast().before(now)) {
             times--;
-            Date last = dates.getLast();
-            resolveDirectory(formatDate(last).get());
-            Date incremented = incrementDate(last);
+            Date incremented = incrementDate(dates.getLast());
             dates.addLast(incremented);
             if (times < 0) {
                 throw new IllegalStateException("Date increment exceeded a limit, check your date increments");
             }
+        }
+        for(Date date:dates){
+            resolveDirectory(formatDate(date).get());
         }
     }
 
